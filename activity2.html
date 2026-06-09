@@ -64,30 +64,33 @@
     /* 활동지 공통 */
     .worksheet {
       width: 210mm;
-      min-height: 297mm;
-      padding: 18mm 16mm;
+      height: 297mm;
+      padding: 12mm 14mm;
       background: white;
       page-break-after: always;
+      page-break-inside: avoid;
       font-family: 'Gowun Dodum', sans-serif;
       color: #2C2C2C;
       box-sizing: border-box;
+      overflow: hidden;
     }
     .worksheet:last-child { page-break-after: auto; }
+    .worksheet:first-child { page-break-before: avoid; }
 
     .ws-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 3px solid #FFCDD2;
-      padding-bottom: 12mm;
-      margin-bottom: 14mm;
+      padding-bottom: 6mm;
+      margin-bottom: 8mm;
     }
     .ws-title {
-      font-size: 40pt;
+      font-size: 32pt;
       font-weight: 900;
     }
     .ws-name {
-      font-size: 24pt;
+      font-size: 20pt;
       font-weight: 600;
     }
 
@@ -99,33 +102,33 @@
 
     /* A형 */
     .ws-A .ws-body p {
-      font-size: 28pt;
-      line-height: 1.6;
-      margin: 0 0 8mm 0;
+      font-size: 22pt;
+      line-height: 1.4;
+      margin: 0 0 3mm 0;
       padding-right: 2cm;
     }
     .ws-A .ws-body .keyword {
-      font-weight: 600;
+      font-weight: 700;
     }
     .ws-bottom-lines {
-      margin-top: 12mm;
+      margin-top: 6mm;
     }
     .ws-bottom-lines .label {
-      font-size: 22pt;
+      font-size: 18pt;
       font-weight: 700;
-      margin-bottom: 6mm;
+      margin-bottom: 4mm;
     }
     .ws-bottom-lines .line {
       border-bottom: 2px solid #888;
-      height: 14mm;
-      margin-bottom: 4mm;
+      height: 10mm;
+      margin-bottom: 3mm;
     }
 
     /* B형 */
     .ws-B .ws-body p {
-      font-size: 32pt;
-      line-height: 1.8;
-      margin: 0 0 10mm 0;
+      font-size: 24pt;
+      line-height: 1.5;
+      margin: 0 0 4mm 0;
       padding-right: 3cm;
     }
     .ws-B .ws-body .keyword,
@@ -138,49 +141,49 @@
     .ws-C .ws-match {
       display: grid;
       grid-template-columns: 1.4fr 1fr;
-      gap: 8mm;
+      gap: 6mm;
       align-items: stretch;
     }
     .ws-C .ws-match .left p {
-      font-size: 24pt;
-      line-height: 1.5;
-      margin: 0 0 6mm 0;
-      padding: 4mm;
+      font-size: 18pt;
+      line-height: 1.4;
+      margin: 0 0 3mm 0;
+      padding: 3mm;
       border: 2px dashed #BBB;
       border-radius: 8px;
-      min-height: 18mm;
+      min-height: 14mm;
     }
     .ws-C .ws-match .right .cue {
-      font-size: 24pt;
-      padding: 4mm;
-      margin: 0 0 6mm 0;
+      font-size: 18pt;
+      padding: 3mm;
+      margin: 0 0 3mm 0;
       border: 2px solid #888;
       border-radius: 12px;
       text-align: center;
-      min-height: 18mm;
+      min-height: 14mm;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
     }
     .ws-C .ws-match .right .cue .emoji {
-      font-size: 32pt;
+      font-size: 24pt;
     }
 
     /* D형 */
     .ws-D .ws-d-item {
       display: flex;
       align-items: center;
-      gap: 8mm;
-      margin: 0 0 14mm 0;
-      padding: 6mm;
+      gap: 6mm;
+      margin: 0 0 8mm 0;
+      padding: 4mm;
       border-radius: 16px;
       background: #FFFAF0;
     }
     .ws-D .ws-d-item .emoji {
-      font-size: 60pt;
-      width: 5cm;
-      height: 5cm;
+      font-size: 48pt;
+      width: 4cm;
+      height: 4cm;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -190,25 +193,25 @@
       flex-shrink: 0;
     }
     .ws-D .ws-d-item .sentence {
-      font-size: 36pt;
-      line-height: 1.4;
+      font-size: 28pt;
+      line-height: 1.3;
       flex: 1;
     }
     .ws-D .ws-d-item .keyword {
-      font-size: 60pt;
+      font-size: 44pt;
       font-weight: 900;
       display: inline-block;
-      padding: 4mm 6mm;
+      padding: 2mm 4mm;
       border: 4px dashed #FF6F00;
       border-radius: 100px;
-      margin: 0 6px;
+      margin: 0 4px;
     }
     .ws-D .ws-d-item .keyword.hl-pink    { background: #FFCDD2; }
     .ws-D .ws-d-item .keyword.hl-yellow  { background: #FFF59D; }
     .ws-D .ws-d-item .keyword.hl-orange  { background: #FFE0B2; }
     .ws-D .ws-d-item .keyword.hl-skyblue { background: #B3E5FC; }
     .ws-D .ws-d-item .arrow {
-      font-size: 36pt;
+      font-size: 28pt;
       margin: 0 4px;
     }
 
@@ -411,19 +414,22 @@
           // ID 순 정렬
           parsed.sort((a, b) => a.id - b.id);
           setData(parsed);
-          const s = pickSeasonings();
-          setSeasonings(s);
-          setPromptText(buildSunoPrompt(parsed, s));
         } catch (e) {
           setError('데이터를 읽지 못했어요: ' + e.message);
         }
       }, []);
 
-      function reshakeSeasonings() {
-        if (!data) return;
-        const s = pickSeasonings();
-        setSeasonings(s);
-        setPromptText(buildSunoPrompt(data, s));
+      // seasonings 또는 data 변경 시 promptText 재빌드
+      useEffect(() => {
+        if (data) {
+          setPromptText(buildSunoPrompt(data, seasonings));
+        }
+      }, [data, seasonings]);
+
+      function toggleSeasoning(s) {
+        setSeasonings(prev =>
+          prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
+        );
       }
 
       function copyToClipboard() {
@@ -524,8 +530,10 @@
               promptText={promptText}
               onChange={setPromptText}
               onCopy={copyToClipboard}
-              onReshake={reshakeSeasonings}
               copied={copied}
+              allSeasonings={SEASONING_POOL}
+              seasonings={seasonings}
+              onToggle={toggleSeasoning}
             />
             <WorksheetPanel
               onPDF={downloadPDF}
@@ -568,7 +576,7 @@
     }
 
     // ───────────────────────── Suno 박스 ─────────────────────────
-    function SunoBox({ promptText, onChange, onCopy, onReshake, copied }) {
+    function SunoBox({ promptText, onChange, onCopy, copied, allSeasonings, seasonings, onToggle }) {
       return (
         <div className="bg-white rounded-3xl p-6 shadow-xl pop-in">
           <div className="flex items-center gap-3 mb-4">
@@ -578,27 +586,41 @@
           <textarea
             value={promptText}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full h-80 p-5 text-xl rounded-2xl border-2 border-purple-200 focus:border-purple-400 outline-none resize-none leading-relaxed"
+            className="w-full h-64 p-5 text-base rounded-2xl border-2 border-purple-200 focus:border-purple-400 outline-none resize-none leading-relaxed"
             style={{ fontFamily: 'Gowun Dodum, sans-serif' }}
           />
-          <div className="flex gap-3 mt-4">
-            <button
-              onClick={onCopy}
-              className="flex-1 text-white text-2xl font-bold py-4 rounded-2xl shadow-lg hover:scale-105 transition"
-              style={{ background: copied ? '#66BB6A' : 'linear-gradient(135deg, #BA68C8, #F48FB1)' }}
-            >
-              {copied ? '✓ 복사됨!' : '📋 복사'}
-            </button>
-            <button
-              onClick={onReshake}
-              className="px-6 py-4 text-2xl font-bold rounded-2xl bg-amber-100 hover:bg-amber-200 shadow"
-            >
-              🔄 양념 다시 뽑기
-            </button>
+
+          <div className="mt-4 mb-3">
+            <div className="text-xl font-bold mb-2">🌶️ 양념 고르기 <span className="text-sm text-gray-500 font-normal">(탭해서 추가/빼기)</span></div>
+            <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
+              {allSeasonings.map(s => {
+                const on = seasonings.includes(s);
+                return (
+                  <button
+                    key={s}
+                    onClick={() => onToggle(s)}
+                    className={`text-left px-3 py-2 rounded-xl text-sm transition leading-snug ${
+                      on
+                        ? 'bg-amber-300 text-amber-900 shadow-md font-bold'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                    }`}
+                  >
+                    {on ? '✓ ' : '+ '}{s}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+
+          <button
+            onClick={onCopy}
+            className="w-full text-white text-2xl font-bold py-4 rounded-2xl shadow-lg hover:scale-105 transition"
+            style={{ background: copied ? '#66BB6A' : 'linear-gradient(135deg, #BA68C8, #F48FB1)' }}
+          >
+            {copied ? '✓ 복사됨!' : '📋 복사'}
+          </button>
           <div className="text-sm text-gray-500 mt-3 leading-relaxed">
-            💡 Suno에 복사 → 붙여넣기 하면 우리 반 테마곡이 만들어져요.<br/>
-            자동 생성된 내용은 텍스트박스에서 직접 수정할 수도 있어요.
+            💡 양념을 고른 다음 텍스트를 수정하세요. Suno에 복사·붙여넣기 하면 우리 반 테마곡이 만들어져요.
           </div>
         </div>
       );
@@ -606,24 +628,29 @@
 
     // ───────────────────────── 활동지 패널 ─────────────────────────
     function WorksheetPanel({ onPDF, onPrint, generating }) {
+      const STUDENT_EMOJI = {
+        "김현민": "🦊", "박지후": "🐯", "신서연": "🐰", "윤승원": "🐻", "이한수": "🐼"
+      };
       const items = [
-        { type: 'A', label: 'A형 (가 수준)', who: '김현민, 윤승원', desc: '10문장 · 자율 동그라미' },
-        { type: 'B', label: 'B형 (나 수준)', who: '박지후',          desc: '10문장 · 형광 강조' },
-        { type: 'C', label: 'C형 (매칭)',     who: '신서연',          desc: '문장↔이미지 연결' },
-        { type: 'D', label: 'D형 (다 수준)', who: '이한수',          desc: '5문장 · 큰 글자' }
+        { who: ['김현민', '윤승원'], desc: '10문장 · 자율 동그라미' },
+        { who: ['박지후'],            desc: '10문장 · 형광 강조' },
+        { who: ['신서연'],            desc: '문장↔이미지 연결' },
+        { who: ['이한수'],            desc: '5문장 · 큰 글자' }
       ];
       return (
         <div className="bg-white rounded-3xl p-6 shadow-xl pop-in">
           <div className="flex items-center gap-3 mb-4">
             <div className="text-4xl">📝</div>
-            <div className="text-3xl font-bold">수준별 활동지</div>
+            <div className="text-3xl font-bold">활동지</div>
           </div>
           <div className="space-y-3 mb-5">
-            {items.map(it => (
-              <div key={it.type} className="flex items-center justify-between bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl p-4">
+            {items.map((it, i) => (
+              <div key={i} className="flex items-center justify-between bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl p-4">
                 <div>
-                  <div className="text-2xl font-bold">{it.label}</div>
-                  <div className="text-lg text-gray-500">{it.who} · {it.desc}</div>
+                  <div className="text-2xl font-bold">
+                    {it.who.map(n => `${STUDENT_EMOJI[n]} ${n}`).join('  ·  ')}
+                  </div>
+                  <div className="text-lg text-gray-500 mt-1">{it.desc}</div>
                 </div>
                 <div className="text-3xl">📄</div>
               </div>
@@ -635,7 +662,7 @@
             className="w-full text-white text-2xl font-bold py-5 rounded-2xl shadow-lg hover:scale-105 transition mb-3 disabled:opacity-60"
             style={{ background: 'linear-gradient(135deg, #66BB6A, #43A047)' }}
           >
-            {generating ? '⏳ PDF 생성 중...' : '📥 PDF 다운로드 (활동지 5장)'}
+            {generating ? '⏳ PDF 생성 중...' : '📥 PDF 다운로드 (5장)'}
           </button>
           <button
             onClick={onPrint}
@@ -688,8 +715,8 @@
             ))}
           </div>
           <div className="ws-bottom-lines">
-            <div className="label">✏️ 내가 찾은 핵심어 10개:</div>
-            {[1,2,3,4,5].map(i => <div key={i} className="line"></div>)}
+            <div className="label">✏️ 내가 찾은 핵심어:</div>
+            {[1,2,3].map(i => <div key={i} className="line"></div>)}
           </div>
         </div>
       );
