@@ -212,7 +212,7 @@
         id: 6, round: 2, color: "yellow", category: "선생님",
         asked_to: "김현민", target: "학급 공통", level: "가",
         options_count: 5, question_type: "fixed",
-        question: "우리 담임은? 👩‍🏫",
+        question: "우리 담임 선생님은? 👩‍🏫",
         options: ["이수현 선생님", "박정인 선생님", "이정구 선생님", "채지원 선생님", "김지숙 선생님"],
         sentences: {
           "이수현 선생님": { text: "우리 담임은 이수현 선생님이에요.", keyword: "이수현 선생님" },
@@ -313,6 +313,8 @@
       const [showHint, setShowHint] = useState(false);
       const [wrongShake, setWrongShake] = useState(false);
       const [locked, setLocked] = useState(false);
+      const [listening, setListening] = useState(false);
+      const [pendingRecord, setPendingRecord] = useState(null);
 
       const currentQ = useMemo(
         () => QUESTIONS.find(q => q.id === currentId) || null,
@@ -355,7 +357,7 @@
 
       // 선택지 클릭
       function handleOptionClick(opt) {
-        if (locked || !currentQ) return;
+        if (locked || listening || !currentQ) return;
         const data = currentQ.sentences[opt];
         if (!data) return;
 
@@ -368,10 +370,7 @@
           return;
         }
 
-        // 정답 / open 정상 선택
-        setLocked(true);
-        speak(data.text);
-
+        // 정답 / open → 듣기 단계
         const record = {
           id: currentQ.id,
           round: currentQ.round,
@@ -384,20 +383,38 @@
           sentence: data.text
         };
 
+        setPendingRecord(record);
+        setListening(true);
+        setShowHint(false);
+        // 즉시 한 번 들려주기 (수준별)
         setTimeout(() => {
-          const newCollected = [...collected, record];
-          const newProgressed = [...progressedIds, currentQ.id];
-          setCollected(newCollected);
-          setProgressedIds(newProgressed);
-          setCurrentId(null);
-          setShowHint(false);
-          setLocked(false);
+          if (record.level === '나') speak(record.keyword);
+          else speak(record.sentence);
+        }, 400);
+      }
 
-          if (newCollected.length === 10) {
-            localStorage.setItem('collectedKeywords', JSON.stringify(newCollected));
-            setPhase('complete');
-          }
-        }, 2400);
+      // 듣기 단계: 다시 듣기
+      function handleReplay() {
+        if (!pendingRecord) return;
+        if (pendingRecord.level === '나') speak(pendingRecord.keyword);
+        else speak(pendingRecord.sentence);
+      }
+
+      // 듣기 단계: 다음으로
+      function handleListeningDone() {
+        if (!pendingRecord) return;
+        const newCollected = [...collected, pendingRecord];
+        const newProgressed = [...progressedIds, pendingRecord.id];
+        setCollected(newCollected);
+        setProgressedIds(newProgressed);
+        setCurrentId(null);
+        setListening(false);
+        setPendingRecord(null);
+
+        if (newCollected.length === 10) {
+          localStorage.setItem('collectedKeywords', JSON.stringify(newCollected));
+          setPhase('complete');
+        }
       }
 
       function startGame() {
@@ -433,6 +450,10 @@
           showHint={showHint}
           wrongShake={wrongShake}
           locked={locked}
+          listening={listening}
+          pendingRecord={pendingRecord}
+          onReplay={handleReplay}
+          onListeningDone={handleListeningDone}
           onRestart={restart}
         />
       );
@@ -487,7 +508,8 @@
     // ───────────────────────── 플레이 화면 ─────────────────────────
     function PlayingScreen({
       collected, currentQ, nextStudent, turnInfo, colorAvailable,
-      onColorClick, onOptionClick, showHint, wrongShake, locked, onRestart
+      onColorClick, onOptionClick, showHint, wrongShake, locked,
+      listening, pendingRecord, onReplay, onListeningDone, onRestart
     }) {
       return (
         <div className="min-h-screen flex flex-col p-8">
@@ -514,11 +536,17 @@
           </header>
 
           {/* 학생 차례 표시 */}
-          <TurnRow currentStudent={nextStudent} active={!currentQ} />
+          <TurnRow currentStudent={nextStudent} active={!currentQ && !listening} />
 
           {/* 메인 영역 */}
           <div className="flex-1 flex items-center justify-center my-6">
-            {!currentQ ? (
+            {listening && pendingRecord ? (
+              <ListeningScreen
+                record={pendingRecord}
+                onReplay={onReplay}
+                onDone={onListeningDone}
+              />
+            ) : !currentQ ? (
               <ColorPicker onPick={onColorClick} colorAvailable={colorAvailable} nextStudent={nextStudent} turnInfo={turnInfo} />
             ) : (
               <QuestionCard
@@ -571,10 +599,11 @@
             🎡 {nextStudent}의 {turnInfo?.turn}번째 차례!
           </div>
           <div className="text-3xl mb-10 text-gray-500">
+            돌림판을 돌리고{' '}
             <span className="font-bold" style={{ color: COLOR_MAP[nextColor]?.deep }}>
               {COLOR_MAP[nextColor]?.emoji} {COLOR_MAP[nextColor]?.label}
             </span>
-            {' '}색깔 돌림판을 돌려요!
+            {' '}색깔을 눌러요!
           </div>
           <div className="grid grid-cols-2 gap-10">
             {Object.entries(COLOR_MAP).map(([key, info]) => {
@@ -639,12 +668,16 @@
               {question.options.map(opt => {
                 const isAnswer = question.answer === opt;
                 const isHighlight = showHint && isAnswer;
+                // 선생님 포함 옵션 줄바꿈 통일
+                const display = opt.endsWith(' 선생님')
+                  ? <>{opt.replace(' 선생님', '')}<br/>선생님</>
+                  : opt;
                 return (
                   <button
                     key={opt}
                     onClick={() => onSelect(opt)}
                     disabled={locked}
-                    className={`option-btn rounded-3xl py-10 px-4 text-5xl font-black shadow-lg disabled:opacity-60 ${
+                    className={`option-btn rounded-3xl py-8 px-4 text-5xl font-black shadow-lg disabled:opacity-60 leading-tight ${
                       isHighlight ? 'hint' : ''
                     }`}
                     style={isHighlight ? {} : {
@@ -652,7 +685,7 @@
                       color: '#5D4037'
                     }}
                   >
-                    {opt}
+                    {display}
                   </button>
                 );
               })}
@@ -663,6 +696,105 @@
                 ✨ 반짝반짝 빛나는 답을 골라볼까요?
               </div>
             )}
+          </div>
+        </div>
+      );
+    }
+
+    // ───────────────────────── 듣고 따라하기 화면 ─────────────────────────
+    function ListeningScreen({ record, onReplay, onDone }) {
+      const student = STUDENTS.find(s => s.name === record.asked_to);
+      const level = record.level;
+      const info = COLOR_MAP[record.color];
+
+      let instruction, content;
+
+      if (level === '가') {
+        // 김현민, 윤승원 — 문장 수준
+        instruction = '문장을 듣고 따라 읽어요!';
+        content = (
+          <div className="text-7xl font-black text-center leading-snug">
+            {record.sentence.split(record.keyword).map((part, i, arr) => (
+              <React.Fragment key={i}>
+                {part}
+                {i < arr.length - 1 && (
+                  <span style={{ background: info.hex, padding: '2px 12px', borderRadius: '16px' }}>
+                    {record.keyword}
+                  </span>
+                )}
+              </React.Fragment>
+            ))}
+          </div>
+        );
+      } else if (level === '나') {
+        // 박지후, 신서연 — 단어 수준
+        instruction = '단어를 듣고 따라 말해요!';
+        content = (
+          <div>
+            <div className="text-2xl text-gray-400 text-center mb-6">{record.sentence}</div>
+            <div className="text-center">
+              <span className="text-9xl font-black inline-block" style={{
+                background: info.hex,
+                padding: '12px 36px',
+                borderRadius: '32px'
+              }}>
+                {record.keyword}
+              </span>
+            </div>
+          </div>
+        );
+      } else {
+        // 이한수 — 문장 듣고 박수
+        instruction = '잘 듣고 박수쳐요!';
+        content = (
+          <div>
+            <div className="text-6xl font-black text-center mb-8 leading-snug">
+              {record.sentence.split(record.keyword).map((part, i, arr) => (
+                <React.Fragment key={i}>
+                  {part}
+                  {i < arr.length - 1 && (
+                    <span style={{ background: info.hex, padding: '2px 12px', borderRadius: '16px' }}>
+                      {record.keyword}
+                    </span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            <div className="text-9xl text-center" style={{ animation: 'wheel-pulse 1s ease-in-out infinite' }}>
+              👏 👏 👏
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="w-full max-w-6xl pop-in">
+          <div className="bg-white rounded-[40px] shadow-2xl p-12" style={{ border: `8px solid ${info.hex}` }}>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="text-6xl">{student?.emoji}</div>
+              <div className="text-3xl font-bold">{student?.name}</div>
+            </div>
+            <div className="text-3xl text-amber-700 font-bold mb-6 text-center">
+              🎤 {instruction}
+            </div>
+            <div className="bg-amber-50 rounded-3xl p-10 mb-8 min-h-[240px] flex items-center justify-center">
+              {content}
+            </div>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={onReplay}
+                className="bg-amber-200 hover:bg-amber-300 text-3xl font-bold px-10 py-5 rounded-2xl shadow-lg hover:scale-105 transition"
+              >
+                🔊 다시 듣기
+              </button>
+              <button
+                onClick={onDone}
+                className="text-white text-3xl font-bold px-12 py-5 rounded-2xl shadow-lg hover:scale-105 transition"
+                style={{ background: 'linear-gradient(135deg, #66BB6A, #43A047)' }}
+              >
+                ✓ 다음으로
+              </button>
+            </div>
           </div>
         </div>
       );
