@@ -37,22 +37,20 @@
     }
     .font-display { font-family: 'Hi Melody', cursive; }
 
-    /* 색깔 버튼 펄스 */
     @keyframes wheel-pulse {
       0%, 100% { transform: scale(1) rotate(0deg); }
-      50% { transform: scale(1.05) rotate(2deg); }
+      50% { transform: scale(1.04) rotate(2deg); }
     }
     .wheel-idle { animation: wheel-pulse 3s ease-in-out infinite; }
 
-    /* 정답 힌트 강조 */
     @keyframes hint-glow {
       0%, 100% {
         box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.85), 0 10px 30px rgba(255, 152, 0, 0.4);
-        transform: scale(1.18);
+        transform: scale(1.15);
       }
       50% {
-        box-shadow: 0 0 0 28px rgba(255, 193, 7, 0), 0 10px 30px rgba(255, 152, 0, 0.4);
-        transform: scale(1.25);
+        box-shadow: 0 0 0 24px rgba(255, 193, 7, 0), 0 10px 30px rgba(255, 152, 0, 0.4);
+        transform: scale(1.22);
       }
     }
     .hint {
@@ -64,7 +62,6 @@
       position: relative;
     }
 
-    /* 등장 애니메이션 */
     @keyframes pop-in {
       0% { transform: scale(0.4) translateY(20px); opacity: 0; }
       60% { transform: scale(1.08) translateY(-4px); }
@@ -96,7 +93,6 @@
       z-index: 50;
     }
 
-    /* 색깔 버튼 호버 */
     .color-btn {
       transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
       position: relative;
@@ -105,9 +101,8 @@
       transform: translateY(-14px) scale(1.08) rotate(-3deg);
       filter: brightness(1.05);
     }
-    .color-btn:disabled { opacity: 0.25; filter: grayscale(0.6); }
+    .color-btn:disabled { opacity: 0.2; filter: grayscale(0.7); cursor: not-allowed; }
 
-    /* 옵션 버튼 호버 */
     .option-btn {
       transition: all 0.25s ease;
     }
@@ -116,14 +111,12 @@
       box-shadow: 0 18px 36px rgba(0,0,0,0.18);
     }
 
-    /* 학생 카드 차례 강조 */
     .student-active {
       background: linear-gradient(135deg, #FFE082 0%, #FFAB91 100%);
       transform: scale(1.18) translateY(-6px);
       box-shadow: 0 20px 50px rgba(255, 152, 0, 0.4);
     }
 
-    /* 풍선 장식 */
     .deco-circle {
       position: absolute;
       border-radius: 50%;
@@ -139,158 +132,260 @@
   <script type="text/babel" data-presets="env,react">
     const { useState, useEffect, useMemo, useRef } = React;
 
-    // ───────────────────────── 부록 A: 활동1 문항 데이터 ─────────────────────────
-    const QUESTIONS = [
-      {
-        id: 1, round: 1, color: "pink", category: "친구",
-        asked_to: "김현민", target: "이한수", level: "가",
-        options_count: 5, question_type: "open",
-        question: "이한수가 잘하는 건? 💪",
-        options: ["심부름", "운동", "춤", "인사", "노래"],
-        sentences: {
-          "심부름": { text: "이한수는 심부름을 잘해요.", keyword: "심부름" },
-          "운동":   { text: "이한수는 운동을 잘해요.",   keyword: "운동" },
-          "춤":     { text: "이한수는 춤을 잘 춰요.",   keyword: "춤" },
-          "인사":   { text: "이한수는 인사를 잘해요.",   keyword: "인사" },
-          "노래":   { text: "이한수는 노래를 잘해요.",   keyword: "노래" }
-        },
-        answer: null
-      },
-      {
-        id: 2, round: 1, color: "pink", category: "친구",
-        asked_to: "박지후", target: "윤승원", level: "나",
-        options_count: 3, question_type: "open",
-        question: "윤승원이 좋아하는 건? 🎵",
-        options: ["노래", "춤", "태블릿"],
-        sentences: {
-          "노래":   { text: "윤승원은 노래를 좋아해요.",   keyword: "노래" },
-          "춤":     { text: "윤승원은 춤을 좋아해요.",     keyword: "춤" },
-          "태블릿": { text: "윤승원은 태블릿을 좋아해요.", keyword: "태블릿" }
-        },
-        answer: null
-      },
-      {
-        id: 3, round: 1, color: "pink", category: "친구",
-        asked_to: "신서연", target: "박지후", level: "나",
-        options_count: 3, question_type: "open",
-        question: "박지후가 좋아하는 건? ⚾",
-        options: ["야구", "기타", "노래"],
-        sentences: {
-          "야구": { text: "박지후는 야구를 좋아해요.", keyword: "야구" },
-          "기타": { text: "박지후는 기타를 좋아해요.", keyword: "기타" },
-          "노래": { text: "박지후는 노래를 좋아해요.", keyword: "노래" }
-        },
-        answer: null
-      },
-      {
-        id: 4, round: 1, color: "pink", category: "친구",
-        asked_to: "윤승원", target: "김현민", level: "가",
-        options_count: 5, question_type: "open",
-        question: "김현민이 좋아하는 건? 🚌",
-        options: ["버스", "클레이", "색칠", "만들기", "노래"],
-        sentences: {
-          "버스":   { text: "김현민은 버스를 좋아해요.",   keyword: "버스" },
-          "클레이": { text: "김현민은 클레이를 좋아해요.", keyword: "클레이" },
-          "색칠":   { text: "김현민은 색칠을 좋아해요.",   keyword: "색칠" },
-          "만들기": { text: "김현민은 만들기를 좋아해요.", keyword: "만들기" },
-          "노래":   { text: "김현민은 노래를 좋아해요.",   keyword: "노래" }
-        },
-        answer: null
-      },
-      {
-        id: 5, round: 1, color: "pink", category: "친구",
-        asked_to: "이한수", target: "신서연", level: "다",
-        options_count: 1, question_type: "fixed",
-        question: "신서연이 좋아하는 건? 🐧",
-        options: ["뽀로로"],
-        sentences: {
-          "뽀로로": { text: "신서연은 뽀로로를 좋아해요.", keyword: "뽀로로" }
-        },
-        answer: "뽀로로"
-      },
-      {
-        id: 6, round: 2, color: "yellow", category: "선생님",
-        asked_to: "김현민", target: "학급 공통", level: "가",
-        options_count: 5, question_type: "fixed",
-        question: "우리 담임 선생님은? 👩‍🏫",
-        options: ["이수현 선생님", "박정인 선생님", "이정구 선생님", "채지원 선생님", "김지숙 선생님"],
-        sentences: {
-          "이수현 선생님": { text: "우리 담임은 이수현 선생님이에요.", keyword: "이수현 선생님" },
-          "박정인 선생님": { text: "우리 담임은 박정인 선생님이에요.", keyword: "박정인 선생님" },
-          "이정구 선생님": { text: "우리 담임은 이정구 선생님이에요.", keyword: "이정구 선생님" },
-          "채지원 선생님": { text: "우리 담임은 채지원 선생님이에요.", keyword: "채지원 선생님" },
-          "김지숙 선생님": { text: "우리 담임은 김지숙 선생님이에요.", keyword: "김지숙 선생님" }
-        },
-        answer: "이수현 선생님"
-      },
-      {
-        id: 7, round: 2, color: "yellow", category: "선생님",
-        asked_to: "윤승원", target: "학급 공통", level: "가",
-        options_count: 5, question_type: "fixed",
-        question: "정보 선생님은? 💻",
-        options: ["박정인 선생님", "이수현 선생님", "정동진 선생님", "김경신 선생님", "정유희 선생님"],
-        sentences: {
-          "박정인 선생님": { text: "정보 선생님은 박정인 선생님이에요.", keyword: "박정인 선생님" },
-          "이수현 선생님": { text: "정보 선생님은 이수현 선생님이에요.", keyword: "이수현 선생님" },
-          "정동진 선생님": { text: "정보 선생님은 정동진 선생님이에요.", keyword: "정동진 선생님" },
-          "김경신 선생님": { text: "정보 선생님은 김경신 선생님이에요.", keyword: "김경신 선생님" },
-          "정유희 선생님": { text: "정보 선생님은 정유희 선생님이에요.", keyword: "정유희 선생님" }
-        },
-        answer: "박정인 선생님"
-      },
-      {
-        id: 8, round: 2, color: "orange", category: "일상",
-        asked_to: "박지후", target: "학급 공통", level: "나",
-        options_count: 3, question_type: "fixed",
-        question: "점심 먹기 전에? 🧼",
-        options: ["손 씻기", "양치", "낮잠"],
-        sentences: {
-          "손 씻기": { text: "점심 먹기 전에 손을 씻어요.", keyword: "손 씻기" },
-          "양치":   { text: "점심 먹기 전에 양치를 해요.", keyword: "양치" },
-          "낮잠":   { text: "점심 먹기 전에 낮잠을 자요.", keyword: "낮잠" }
-        },
-        answer: "손 씻기"
-      },
-      {
-        id: 9, round: 2, color: "orange", category: "일상",
-        asked_to: "이한수", target: "학급 공통", level: "다",
-        options_count: 1, question_type: "fixed",
-        question: "아침에 마시는 건? 🥛",
-        options: ["우유"],
-        sentences: {
-          "우유": { text: "우리는 아침에 우유를 마셔요.", keyword: "우유" }
-        },
-        answer: "우유"
-      },
-      {
-        id: 10, round: 2, color: "skyblue", category: "학교",
-        asked_to: "신서연", target: "학급 공통", level: "나",
-        options_count: 3, question_type: "fixed",
-        question: "우리 반은 몇 층? 🏫",
-        options: ["1층", "2층", "3층"],
-        sentences: {
-          "1층": { text: "우리 반은 1층에 있어요.", keyword: "1층" },
-          "2층": { text: "우리 반은 2층에 있어요.", keyword: "2층" },
-          "3층": { text: "우리 반은 3층에 있어요.", keyword: "3층" }
-        },
-        answer: "1층"
-      }
-    ];
-
+    // ───────────────────────── 학생 정보 ─────────────────────────
     const STUDENTS = [
       { name: "김현민", level: "가", emoji: "🦊" },
+      { name: "윤승원", level: "가", emoji: "🐻" },
       { name: "박지후", level: "나", emoji: "🐯" },
       { name: "신서연", level: "나", emoji: "🐰" },
-      { name: "윤승원", level: "가", emoji: "🐻" },
       { name: "이한수", level: "다", emoji: "🐼" }
     ];
 
+    // 학생 차례 순환 고정 (10턴)
+    const STUDENT_ORDER = [
+      "김현민", "윤승원", "박지후", "신서연", "이한수",
+      "김현민", "윤승원", "박지후", "신서연", "이한수"
+    ];
+
+    // 색깔 → 카테고리
     const COLOR_MAP = {
-      pink:    { hex: "#FFCDD2", deep: "#F48FB1", label: "친구",   emoji: "🩷", chipBg: "#FCE4EC" },
-      yellow:  { hex: "#FFF59D", deep: "#FFD54F", label: "선생님", emoji: "💛", chipBg: "#FFFDE7" },
-      orange:  { hex: "#FFE0B2", deep: "#FFB74D", label: "일상",   emoji: "🧡", chipBg: "#FFF3E0" },
-      skyblue: { hex: "#B3E5FC", deep: "#4FC3F7", label: "학교",   emoji: "🩵", chipBg: "#E1F5FE" }
+      pink:    { hex: "#FFCDD2", deep: "#F48FB1", label: "친구",   emoji: "🩷", chipBg: "#FCE4EC", cat: "친구" },
+      yellow:  { hex: "#FFF59D", deep: "#FFD54F", label: "선생님", emoji: "💛", chipBg: "#FFFDE7", cat: "선생님" },
+      orange:  { hex: "#FFE0B2", deep: "#FFB74D", label: "일상",   emoji: "🧡", chipBg: "#FFF3E0", cat: "일상" },
+      skyblue: { hex: "#B3E5FC", deep: "#4FC3F7", label: "학교",   emoji: "🩵", chipBg: "#E1F5FE", cat: "학교" }
     };
+    const CATEGORY_TO_COLOR = { "친구": "pink", "선생님": "yellow", "일상": "orange", "학교": "skyblue" };
+
+    // ───────────────────────── 문제 풀 (38개) ─────────────────────────
+    const QUIZ_POOL = {
+      "친구": [
+        { id: "f1",  target: "윤승원", is_open: true,
+          question: "윤승원이 잘하는 건? ✍️",
+          sentence_template: "윤승원은 ___을 잘해요.",
+          options: ["글씨 쓰기", "달리기", "수영", "노래", "요리"] },
+        { id: "f2",  target: "윤승원", is_open: true,
+          question: "윤승원이 좋아하는 건? 📺",
+          sentence_template: "윤승원은 ___을 좋아해요.",
+          options: ["파파독", "개미", "뽀로로", "자동차", "버스"] },
+        { id: "f3",  target: "김현민", is_open: true,
+          question: "김현민이 잘하는 건? 🧹",
+          sentence_template: "김현민은 ___을 잘해요.",
+          options: ["청소", "글씨 쓰기", "피아노", "축구", "태블릿"] },
+        { id: "f4",  target: "김현민", is_open: true,
+          question: "김현민이 좋아하는 건? 🐜",
+          sentence_template: "김현민은 ___을 좋아해요.",
+          options: ["개미", "파파독", "토마토", "야구", "물소"] },
+        { id: "f5",  target: "박지후", is_open: true,
+          question: "박지후가 잘하는 건? 📚",
+          sentence_template: "박지후는 ___을 잘해요.",
+          options: ["공부", "색칠", "달리기", "그림", "요리"] },
+        { id: "f6",  target: "박지후", is_open: true,
+          question: "박지후가 좋아하는 건? ⚾",
+          sentence_template: "박지후는 ___을 좋아해요.",
+          options: ["야구 응원가", "동요", "클래식", "코코몽", "뽀로로"] },
+        { id: "f7",  target: "신서연", is_open: true,
+          question: "신서연이 잘하는 건? 🙋‍♀️",
+          sentence_template: "신서연은 ___을 잘해요.",
+          options: ["발표", "달리기", "심부름", "세탁", "컴퓨터"] },
+        { id: "f8",  target: "신서연", is_open: true,
+          question: "신서연이 좋아하는 건? 🐵",
+          sentence_template: "신서연은 ___을 좋아해요.",
+          options: ["코코몽", "개미", "야구", "파파독", "물소"] },
+        { id: "f9",  target: "이한수", is_open: true,
+          question: "이한수가 잘하는 건? 💪",
+          sentence_template: "이한수는 ___을 잘해요.",
+          options: ["심부름", "글씨 쓰기", "색칠", "공부", "발표"] },
+        { id: "f10", target: "이한수", is_open: true,
+          question: "이한수가 좋아하는 건? 🎶",
+          sentence_template: "이한수는 ___을 좋아해요.",
+          options: ["동요 듣기", "축구 노래", "야구 응원가", "가야금", "실로폰"] }
+      ],
+      "선생님": [
+        { id: "t1", is_open: false,
+          question: "우리 담임 선생님은? 👩‍🏫",
+          sentence_template: "우리 담임 선생님은 ___이에요.",
+          options: ["이수현 선생님", "박정인 선생님", "이정구 선생님", "채지원 선생님", "김지숙 선생님"] },
+        { id: "t2", is_open: false,
+          question: "정보 선생님은? 💻",
+          sentence_template: "정보 선생님은 ___이에요.",
+          options: ["박정인 선생님", "이수현 선생님", "정동진 선생님", "김경신 선생님", "정유희 선생님"] },
+        { id: "t3", is_open: false,
+          question: "이수현 선생님이 가르치시는 과목은? 🔬",
+          sentence_template: "이수현 선생님은 ___을 가르쳐 주셔요.",
+          options: ["과학", "체육", "음악", "미술", "국어"] },
+        { id: "t4", is_open: false,
+          question: "박정인 선생님을 도와주시는 분은? 👩‍🏫",
+          sentence_template: "우리를 도와주시는 분은 ___이에요.",
+          options: ["정유희 선생님", "이정구 선생님", "김경신 선생님", "채지원 선생님", "김지숙 선생님"] },
+        { id: "t5", is_open: false,
+          question: "박정인 선생님이 타고 다니시는 것은? 🦽",
+          sentence_template: "박정인 선생님은 ___을 타고 계셔요.",
+          options: ["전동휠체어", "자동차", "자전거", "오토바이", "비행기"] },
+        { id: "t6", is_open: false,
+          question: "박정인 선생님 휠체어 바퀴는? 🛞",
+          sentence_template: "선생님의 휠체어 바퀴는 ___예요.",
+          options: ["6개", "2개", "3개", "4개", "10개"] },
+        { id: "t7", is_open: false,
+          question: "동아리 시간에 무엇을 할까요? 📱",
+          sentence_template: "동아리 시간에는 ___을 만져요.",
+          options: ["태블릿", "찰흙", "물감", "가야금", "실로폰"] },
+        { id: "t8", is_open: false,
+          question: "태블릿으로 무엇을 연습했나요? ⌨️",
+          sentence_template: "태블릿으로 ___을 연습했어요.",
+          options: ["타자", "노래", "그림 그리기", "달리기", "청소"] },
+        { id: "t9", is_open: false,
+          question: "금요일 4교시에 하는 수업은? 🧺",
+          sentence_template: "금요일 4교시에는 ___을 해요.",
+          options: ["세탁 수업", "음악 수업", "국어 수업", "미술 수업", "요리 수업"] },
+        { id: "t10", is_open: false,
+          question: "스포츠 시간에 한 게임은? 🏸",
+          sentence_template: "스포츠 시간에 ___을 했어요.",
+          options: ["닌텐도 배드민턴", "야구", "농구", "수영", "배구"] }
+      ],
+      "일상": [
+        { id: "d1", is_open: false,
+          question: "선생님을 만났을 때? 🙇‍♀️",
+          sentence_template: "선생님을 만나면 \"___\" 하고 인사해요.",
+          options: ["안녕하세요", "안녕히 계세요", "잘 먹겠습니다", "잘 먹었습니다", "미안합니다"] },
+        { id: "d2", is_open: false,
+          question: "급식 먹기 전에는? 🍚",
+          sentence_template: "밥을 먹기 전에는 \"___\" 하고 인사해요.",
+          options: ["잘 먹겠습니다", "안녕하세요", "안녕히 주무세요", "고맙습니다", "미안합니다"] },
+        { id: "d3", is_open: false,
+          question: "화장실은 언제? 🚽",
+          sentence_template: "화장실은 ___에 가요.",
+          options: ["쉬는 시간", "수업 시간", "밥 먹을 때", "잠잘 때", "집에 갈 때"] },
+        { id: "d4", is_open: false,
+          question: "물은 언제 마시러? 💧",
+          sentence_template: "물은 ___에 마시러 가요.",
+          options: ["쉬는 시간", "수업 시간", "화장실 갈 때", "선생님 말씀할 때", "집에 갈 때"] },
+        { id: "d5", is_open: false,
+          question: "밥 먹고 나서는? 🪥",
+          sentence_template: "밥을 다 먹고 나서는 ___을 해요.",
+          options: ["양치", "세수", "목욕", "달리기", "낮잠"] },
+        { id: "d6", is_open: false,
+          question: "밥 먹기 전에는? 🧼",
+          sentence_template: "밥을 먹기 전에는 깨끗하게 ___을 씻어요.",
+          options: ["손", "발", "머리", "귀", "코"] },
+        { id: "d7", is_open: false,
+          question: "종이 치면? 🔔",
+          sentence_template: "종이 치면 ___에 앉아요.",
+          options: ["자리", "바닥", "책상 위", "화장실", "운동장"] },
+        { id: "d8", is_open: false,
+          question: "아침에 학교 오면? 👟",
+          sentence_template: "학교에 오면 ___로 갈아신어요.",
+          options: ["실내화", "장화", "슬리퍼", "수면양말", "등산화"] },
+        { id: "d9", is_open: false,
+          question: "집에 갈 때는? 🎒",
+          sentence_template: "집에 갈 때는 ___로 갈아신어요.",
+          options: ["신발", "실내화", "장갑", "양말", "맨발"] },
+        { id: "d10", is_open: false,
+          question: "오늘은 무슨 요일? 📅",
+          sentence_template: "오늘은 ___이에요.",
+          options: ["목요일", "월요일", "화요일", "수요일", "금요일"] },
+        { id: "d11", is_open: false,
+          question: "여름방학은 언제? 🏖️",
+          sentence_template: "우리 여름방학은 ___이에요.",
+          options: ["7월 20일", "5월 5일", "12월 25일", "1월 1일", "10월 11일"] }
+      ],
+      "학교": [
+        { id: "s1", is_open: false,
+          question: "우리는 몇 학년 몇 반? 🏫",
+          sentence_template: "우리 반은 ___이에요.",
+          options: ["3학년 2반", "3학년 1반", "3학년 3반", "3학년 4반", "2학년 2반"] },
+        { id: "s2", is_open: false,
+          question: "우리는 내년에 무엇이? 🎒",
+          sentence_template: "우리는 내년에 ___이 돼요.",
+          options: ["고등학생", "중학생", "초등학생", "대학생", "선생님"] },
+        { id: "s3", is_open: false,
+          question: "컴퓨터실은 몇 층? 💻",
+          sentence_template: "컴퓨터실은 ___에 있어요.",
+          options: ["2층", "1층", "3층", "4층", "5층"] },
+        { id: "s4", is_open: false,
+          question: "음악실은 몇 층? 🎵",
+          sentence_template: "음악실은 ___에 있어요.",
+          options: ["1층", "2층", "3층", "4층", "5층"] },
+        { id: "s5", is_open: false,
+          question: "강당에는 무엇이? 🎈",
+          sentence_template: "강당에는 ___이 있어요.",
+          options: ["큰 공", "세탁기", "컴퓨터", "가야금", "냄비"] },
+        { id: "s6", is_open: false,
+          question: "우리 학교 장터 이름은? 🎪",
+          sentence_template: "우리 학교 장터는 ___이에요.",
+          options: ["꿈오름 장터", "별빛 장터", "무지개 장터", "햇살 장터", "행복 장터"] },
+        { id: "s7", is_open: true,
+          question: "우리 학교 특별실은? 🏫",
+          sentence_template: "우리 학교에는 ___이 있어요.",
+          options: ["제과제빵실", "바리스타실", "일상생활 훈련실", "컴퓨터실", "세탁실"] },
+        { id: "s8", is_open: false,
+          question: "체력단련실은 몇 층? 💪",
+          sentence_template: "체력단련실은 ___에 있어요.",
+          options: ["3층", "1층", "2층", "4층", "5층"] }
+      ]
+    };
+
+    // ───────────────────────── 한국어 조사 자동 처리 ─────────────────────────
+    function hasCoda(word) {
+      if (!word) return true;
+      const ch = word[word.length - 1];
+      const code = ch.charCodeAt(0);
+      if (code >= 0xAC00 && code <= 0xD7A3) {
+        return (code - 0xAC00) % 28 !== 0;
+      }
+      // 한글 외 (숫자 끝나는 "1층", "2반" 등) — 받침 있다고 가정
+      // 다만 받침 없는 한자/특수 케이스 별로 추가 처리 가능
+      return true;
+    }
+
+    function fillSentence(template, option) {
+      const coda = hasCoda(option);
+      let result = template.replace(/___/g, option);
+
+      // 옵션 직후의 조사를 자동 수정
+      const replaceJosa = (afterPattern, withCoda, withoutCoda) => {
+        const re = new RegExp(escapeRegex(option) + afterPattern, 'g');
+        result = result.replace(re, option + (coda ? withCoda : withoutCoda));
+      };
+
+      // 슬래시형 표기 우선 처리
+      replaceJosa('을/를', '을', '를');
+      replaceJosa('이/가', '이', '가');
+      replaceJosa('은/는', '은', '는');
+      replaceJosa('으로/로', '으로', '로');
+      replaceJosa('와/과', '과', '와');
+
+      // 단일 표기 자동 보정
+      if (coda) {
+        replaceJosa('를(?![/가-힣])', '을', '을');
+        replaceJosa('가(?![/가-힣])', '이', '이');
+        replaceJosa('는(?![/가-힣])', '은', '은');
+      } else {
+        replaceJosa('을(?![/가-힣])', '를', '를');
+        replaceJosa('이(?![/가-힣가])', '가', '가');
+        replaceJosa('은(?![/가-힣])', '는', '는');
+      }
+
+      // 이에요 / 예요
+      const ieyo = new RegExp(escapeRegex(option) + '이에요', 'g');
+      const yeyo = new RegExp(escapeRegex(option) + '예요', 'g');
+      result = result.replace(ieyo, option + (coda ? '이에요' : '예요'));
+      result = result.replace(yeyo, option + (coda ? '이에요' : '예요'));
+
+      return result;
+    }
+
+    function escapeRegex(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
 
     // ───────────────────────── TTS ─────────────────────────
     function speak(text, opts = {}) {
@@ -304,65 +399,77 @@
       window.speechSynthesis.speak(u);
     }
 
-    // ───────────────────────── Root ─────────────────────────
+    // ───────────────────────── App ─────────────────────────
     function App() {
       const [phase, setPhase] = useState('start');
-      const [currentId, setCurrentId] = useState(null);
+      const [turnIndex, setTurnIndex] = useState(0);
+      const [currentQ, setCurrentQ] = useState(null);  // 현재 출제된 문제 (옵션 절단·셔플 적용된 상태)
       const [collected, setCollected] = useState([]);
-      const [progressedIds, setProgressedIds] = useState([]);
+      const [usedIds, setUsedIds] = useState([]);
       const [showHint, setShowHint] = useState(false);
       const [wrongShake, setWrongShake] = useState(false);
-      const [locked, setLocked] = useState(false);
       const [listening, setListening] = useState(false);
       const [pendingRecord, setPendingRecord] = useState(null);
 
-      const currentQ = useMemo(
-        () => QUESTIONS.find(q => q.id === currentId) || null,
-        [currentId]
-      );
+      // 현재 차례 학생 정보
+      const currentStudent = useMemo(() => {
+        if (turnIndex >= STUDENT_ORDER.length) return null;
+        const name = STUDENT_ORDER[turnIndex];
+        return STUDENTS.find(s => s.name === name);
+      }, [turnIndex]);
 
-      const remainingByColor = (color) =>
-        QUESTIONS
-          .filter(q => q.color === color && !progressedIds.includes(q.id))
-          .sort((a, b) => a.id - b.id);
+      // 색깔별 남은 문제 수
+      function remainingInCategory(color) {
+        const cat = COLOR_MAP[color].cat;
+        const pool = QUIZ_POOL[cat] || [];
+        return pool.filter(q => {
+          if (usedIds.includes(q.id)) return false;
+          if (cat === '친구' && currentStudent && q.target === currentStudent.name) return false;
+          return true;
+        }).length;
+      }
+      const colorAvailable = (color) => remainingInCategory(color) > 0;
 
-      const colorAvailable = (color) => remainingByColor(color).length > 0;
-
-      const turnInfo = useMemo(() => {
-        const next = QUESTIONS.find(q => !progressedIds.includes(q.id));
-        if (!next) return null;
-        const studentQs = QUESTIONS.filter(q => q.asked_to === next.asked_to).sort((a, b) => a.id - b.id);
-        const idx = studentQs.findIndex(q => q.id === next.id);
-        return {
-          name: next.asked_to,
-          turn: idx + 1,
-          total: studentQs.length,
-          color: next.color,
-          category: next.category
-        };
-      }, [progressedIds]);
-      const nextStudent = turnInfo?.name || null;
-
-      // 색깔 버튼 클릭
+      // 색깔 클릭
       function handleColorClick(color) {
-        if (locked) return;
-        const next = remainingByColor(color)[0];
-        if (!next) return;
-        setCurrentId(next.id);
+        if (currentQ || listening || !currentStudent) return;
+        const cat = COLOR_MAP[color].cat;
+        const pool = QUIZ_POOL[cat] || [];
+        const candidates = pool.filter(q => {
+          if (usedIds.includes(q.id)) return false;
+          if (cat === '친구' && q.target === currentStudent.name) return false;
+          return true;
+        });
+        if (candidates.length === 0) return;
+
+        const picked = candidates[Math.floor(Math.random() * candidates.length)];
+        const level = currentStudent.level;
+        const count = level === '가' ? 5 : level === '나' ? 3 : 1;
+
+        // 정답(=options[0]) 포함 앞 N개
+        const sliced = picked.options.slice(0, count);
+        // 1지선다 제외하고 셔플
+        const displayOptions = count > 1 ? shuffle(sliced) : sliced;
+
+        setCurrentQ({
+          ...picked,
+          color,
+          category: cat,
+          displayOptions,
+          answer: picked.is_open ? null : picked.options[0]
+        });
         setShowHint(false);
         setWrongShake(false);
-        // 차례 안내 TTS
-        setTimeout(() => speak(`${next.asked_to}. ${COLOR_MAP[color].label} 차례.`), 150);
+
+        setTimeout(() => speak(`${currentStudent.name}. ${cat} 차례.`), 200);
       }
 
       // 선택지 클릭
       function handleOptionClick(opt) {
-        if (locked || listening || !currentQ) return;
-        const data = currentQ.sentences[opt];
-        if (!data) return;
+        if (!currentQ || listening) return;
 
         // fixed 오답 처리
-        if (currentQ.question_type === 'fixed' && opt !== currentQ.answer) {
+        if (!currentQ.is_open && opt !== currentQ.answer) {
           setShowHint(true);
           setWrongShake(true);
           speak('다시 한 번 골라볼까요? 반짝이는 답을 골라보세요.');
@@ -370,46 +477,46 @@
           return;
         }
 
-        // 정답 / open → 듣기 단계
+        // 정답 또는 open → 듣기 단계
+        const sentence = fillSentence(currentQ.sentence_template, opt);
         const record = {
           id: currentQ.id,
-          round: currentQ.round,
           color: currentQ.color,
           category: currentQ.category,
-          asked_to: currentQ.asked_to,
-          target: currentQ.target,
-          level: currentQ.level,
-          keyword: data.keyword,
-          sentence: data.text
+          asked_to: currentStudent.name,
+          target: currentQ.target || '학급 공통',
+          level: currentStudent.level,
+          keyword: opt,
+          sentence: sentence
         };
 
         setPendingRecord(record);
         setListening(true);
         setShowHint(false);
-        // 즉시 한 번 들려주기 (수준별)
         setTimeout(() => {
           if (record.level === '나') speak(record.keyword);
           else speak(record.sentence);
         }, 400);
       }
 
-      // 듣기 단계: 다시 듣기
       function handleReplay() {
         if (!pendingRecord) return;
         if (pendingRecord.level === '나') speak(pendingRecord.keyword);
         else speak(pendingRecord.sentence);
       }
 
-      // 듣기 단계: 다음으로
       function handleListeningDone() {
         if (!pendingRecord) return;
         const newCollected = [...collected, pendingRecord];
-        const newProgressed = [...progressedIds, pendingRecord.id];
+        const newUsedIds = [...usedIds, pendingRecord.id];
+        const newTurn = turnIndex + 1;
+
         setCollected(newCollected);
-        setProgressedIds(newProgressed);
-        setCurrentId(null);
+        setUsedIds(newUsedIds);
+        setCurrentQ(null);
         setListening(false);
         setPendingRecord(null);
+        setTurnIndex(newTurn);
 
         if (newCollected.length === 10) {
           localStorage.setItem('collectedKeywords', JSON.stringify(newCollected));
@@ -419,9 +526,12 @@
 
       function startGame() {
         setPhase('playing');
+        setTurnIndex(0);
         setCollected([]);
-        setProgressedIds([]);
-        setCurrentId(null);
+        setUsedIds([]);
+        setCurrentQ(null);
+        setListening(false);
+        setPendingRecord(null);
         setShowHint(false);
       }
 
@@ -442,14 +552,13 @@
         <PlayingScreen
           collected={collected}
           currentQ={currentQ}
-          nextStudent={nextStudent}
-          turnInfo={turnInfo}
+          currentStudent={currentStudent}
+          turnIndex={turnIndex}
           colorAvailable={colorAvailable}
           onColorClick={handleColorClick}
           onOptionClick={handleOptionClick}
           showHint={showHint}
           wrongShake={wrongShake}
-          locked={locked}
           listening={listening}
           pendingRecord={pendingRecord}
           onReplay={handleReplay}
@@ -507,13 +616,17 @@
 
     // ───────────────────────── 플레이 화면 ─────────────────────────
     function PlayingScreen({
-      collected, currentQ, nextStudent, turnInfo, colorAvailable,
-      onColorClick, onOptionClick, showHint, wrongShake, locked,
+      collected, currentQ, currentStudent, turnIndex, colorAvailable,
+      onColorClick, onOptionClick, showHint, wrongShake,
       listening, pendingRecord, onReplay, onListeningDone, onRestart
     }) {
+      // 학생별 현재 라운드 (1차/2차)
+      const studentTurnNumber = STUDENT_ORDER
+        .slice(0, turnIndex + 1)
+        .filter(n => n === currentStudent?.name).length;
+
       return (
         <div className="min-h-screen flex flex-col p-8">
-          {/* 헤더 */}
           <header className="flex justify-between items-center mb-6">
             <div className="font-display text-6xl" style={{
               background: 'linear-gradient(135deg, #F48FB1, #FFB74D)',
@@ -535,10 +648,8 @@
             </div>
           </header>
 
-          {/* 학생 차례 표시 */}
-          <TurnRow currentStudent={nextStudent} active={!currentQ && !listening} />
+          <TurnRow currentStudent={currentStudent?.name} active={!currentQ && !listening} />
 
-          {/* 메인 영역 */}
           <div className="flex-1 flex items-center justify-center my-6">
             {listening && pendingRecord ? (
               <ListeningScreen
@@ -547,19 +658,23 @@
                 onDone={onListeningDone}
               />
             ) : !currentQ ? (
-              <ColorPicker onPick={onColorClick} colorAvailable={colorAvailable} nextStudent={nextStudent} turnInfo={turnInfo} />
+              <ColorPicker
+                onPick={onColorClick}
+                colorAvailable={colorAvailable}
+                currentStudent={currentStudent}
+                studentTurnNumber={studentTurnNumber}
+              />
             ) : (
               <QuestionCard
                 question={currentQ}
                 onSelect={onOptionClick}
                 showHint={showHint}
                 wrongShake={wrongShake}
-                locked={locked}
+                studentName={currentStudent?.name}
               />
             )}
           </div>
 
-          {/* 누적 핵심어 */}
           <CollectedBar collected={collected} />
         </div>
       );
@@ -591,40 +706,29 @@
       );
     }
 
-    function ColorPicker({ onPick, colorAvailable, nextStudent, turnInfo }) {
-      const nextColor = turnInfo?.color;
+    function ColorPicker({ onPick, colorAvailable, currentStudent, studentTurnNumber }) {
       return (
         <div className="flex flex-col items-center">
           <div className="text-6xl mb-4 text-gray-700 font-black">
-            🎡 {nextStudent}의 {turnInfo?.turn}번째 차례!
+            🎡 {currentStudent?.name}의 {studentTurnNumber}번째 차례!
           </div>
           <div className="text-3xl mb-10 text-gray-500">
-            돌림판을 돌리고{' '}
-            <span className="font-bold" style={{ color: COLOR_MAP[nextColor]?.deep }}>
-              {COLOR_MAP[nextColor]?.emoji} {COLOR_MAP[nextColor]?.label}
-            </span>
-            {' '}색깔을 눌러요!
+            돌림판을 돌리고 나온 색깔을 눌러요!
           </div>
           <div className="grid grid-cols-2 gap-10">
             {Object.entries(COLOR_MAP).map(([key, info]) => {
               const ok = colorAvailable(key);
-              const isNext = key === nextColor;
               return (
                 <button
                   key={key}
                   disabled={!ok}
                   onClick={() => onPick(key)}
-                  className={`color-btn rounded-full flex flex-col items-center justify-center ${ok && isNext ? 'wheel-idle' : ''}`}
+                  className={`color-btn rounded-full flex flex-col items-center justify-center ${ok ? 'wheel-idle' : ''}`}
                   style={{
                     background: `radial-gradient(circle at 30% 30%, ${info.hex} 0%, ${info.deep} 100%)`,
                     width: 260, height: 260,
-                    border: isNext ? '10px solid #FFB300' : '8px solid white',
-                    boxShadow: isNext
-                      ? '0 0 0 14px rgba(255, 179, 0, 0.35), 0 20px 40px rgba(0,0,0,0.25)'
-                      : '0 10px 25px rgba(0,0,0,0.15)',
-                    transform: isNext ? 'scale(1.08)' : 'scale(1)',
-                    opacity: ok ? 1 : 0.25,
-                    filter: ok ? 'none' : 'grayscale(0.6)'
+                    border: '8px solid white',
+                    boxShadow: ok ? '0 10px 25px rgba(0,0,0,0.15)' : 'none'
                   }}
                 >
                   <div className="text-7xl mb-2 drop-shadow-md">{info.emoji}</div>
@@ -637,17 +741,17 @@
       );
     }
 
-    function QuestionCard({ question, onSelect, showHint, wrongShake, locked }) {
-      const cols = question.options_count === 1 ? 'grid-cols-1 max-w-md mx-auto'
-                 : question.options_count === 3 ? 'grid-cols-3'
+    function QuestionCard({ question, onSelect, showHint, wrongShake, studentName }) {
+      const count = question.displayOptions.length;
+      const cols = count === 1 ? 'grid-cols-1 max-w-md mx-auto'
+                 : count === 3 ? 'grid-cols-3'
                  : 'grid-cols-5';
 
       const colorInfo = COLOR_MAP[question.color];
 
       return (
         <div className={`w-full max-w-7xl ${wrongShake ? 'shake' : 'pop-in'}`}>
-          <div className="bg-white rounded-[40px] shadow-2xl p-12"
-               style={{ border: `8px solid ${colorInfo.hex}` }}>
+          <div className="bg-white rounded-[40px] shadow-2xl p-12" style={{ border: `8px solid ${colorInfo.hex}` }}>
 
             <div className="flex items-center justify-center gap-3 mb-4">
               <span className="text-3xl" style={{
@@ -656,28 +760,27 @@
                 {colorInfo.emoji} {colorInfo.label}
               </span>
               <span className="text-3xl font-bold text-gray-500">
-                · {question.asked_to}님 차례
+                · {studentName}님 차례
               </span>
             </div>
 
-            <div className="text-8xl font-black text-center mb-10 mt-6 leading-tight">
+            <div className="text-7xl font-black text-center mb-10 mt-6 leading-tight">
               {question.question}
             </div>
 
             <div className={`grid ${cols} gap-5`}>
-              {question.options.map(opt => {
-                const isAnswer = question.answer === opt;
+              {question.displayOptions.map((opt, idx) => {
+                const isAnswer = !question.is_open && opt === question.answer;
                 const isHighlight = showHint && isAnswer;
-                // 선생님 포함 옵션 줄바꿈 통일
+                // 선생님 이름 줄바꿈 통일
                 const display = opt.endsWith(' 선생님')
                   ? <>{opt.replace(' 선생님', '')}<br/>선생님</>
                   : opt;
                 return (
                   <button
-                    key={opt}
+                    key={idx}
                     onClick={() => onSelect(opt)}
-                    disabled={locked}
-                    className={`option-btn rounded-3xl py-8 px-4 text-5xl font-black shadow-lg disabled:opacity-60 leading-tight ${
+                    className={`option-btn rounded-3xl py-8 px-3 text-4xl font-black shadow-lg leading-tight ${
                       isHighlight ? 'hint' : ''
                     }`}
                     style={isHighlight ? {} : {
@@ -710,24 +813,13 @@
       let instruction, content;
 
       if (level === '가') {
-        // 김현민, 윤승원 — 문장 수준
         instruction = '문장을 듣고 따라 읽어요!';
         content = (
-          <div className="text-7xl font-black text-center leading-snug">
-            {record.sentence.split(record.keyword).map((part, i, arr) => (
-              <React.Fragment key={i}>
-                {part}
-                {i < arr.length - 1 && (
-                  <span style={{ background: info.hex, padding: '2px 12px', borderRadius: '16px' }}>
-                    {record.keyword}
-                  </span>
-                )}
-              </React.Fragment>
-            ))}
+          <div className="text-6xl font-black text-center leading-snug">
+            {renderSentenceWithHighlight(record.sentence, record.keyword, info.hex)}
           </div>
         );
       } else if (level === '나') {
-        // 박지후, 신서연 — 단어 수준
         instruction = '단어를 듣고 따라 말해요!';
         content = (
           <div>
@@ -744,21 +836,11 @@
           </div>
         );
       } else {
-        // 이한수 — 문장 듣고 박수
         instruction = '잘 듣고 박수쳐요!';
         content = (
           <div>
-            <div className="text-6xl font-black text-center mb-8 leading-snug">
-              {record.sentence.split(record.keyword).map((part, i, arr) => (
-                <React.Fragment key={i}>
-                  {part}
-                  {i < arr.length - 1 && (
-                    <span style={{ background: info.hex, padding: '2px 12px', borderRadius: '16px' }}>
-                      {record.keyword}
-                    </span>
-                  )}
-                </React.Fragment>
-              ))}
+            <div className="text-5xl font-black text-center mb-8 leading-snug">
+              {renderSentenceWithHighlight(record.sentence, record.keyword, info.hex)}
             </div>
             <div className="text-9xl text-center" style={{ animation: 'wheel-pulse 1s ease-in-out infinite' }}>
               👏 👏 👏
@@ -800,6 +882,22 @@
       );
     }
 
+    function renderSentenceWithHighlight(sentence, keyword, hexColor) {
+      const idx = sentence.indexOf(keyword);
+      if (idx === -1) return <span>{sentence}</span>;
+      const before = sentence.substring(0, idx);
+      const after = sentence.substring(idx + keyword.length);
+      return (
+        <span>
+          {before}
+          <span style={{ background: hexColor, padding: '2px 12px', borderRadius: '16px' }}>
+            {keyword}
+          </span>
+          {after}
+        </span>
+      );
+    }
+
     function CollectedBar({ collected }) {
       return (
         <div className="bg-white/80 backdrop-blur rounded-3xl p-5 shadow-inner min-h-[110px]">
@@ -807,14 +905,14 @@
             🎁 모은 핵심어 ({collected.length}/10)
           </div>
           <div className="flex flex-wrap gap-3">
-            {collected.map(item => {
+            {collected.map((item, idx) => {
               const info = COLOR_MAP[item.color];
               const text = item.category === '친구'
                 ? `${item.target}—${item.keyword}`
                 : item.keyword;
               return (
                 <div
-                  key={item.id}
+                  key={idx}
                   className="rounded-full px-5 py-3 text-2xl font-bold shadow pop-in"
                   style={{ background: info.hex, color: '#3A3A3A' }}
                   title={item.sentence}
@@ -830,7 +928,6 @@
 
     // ───────────────────────── 완료 화면 ─────────────────────────
     function CompleteScreen({ collected, onGo, onRestart }) {
-      // 색종이
       useEffect(() => {
         const colors = ['#F48FB1', '#FFD54F', '#FFB74D', '#4FC3F7', '#81C784', '#BA68C8'];
         for (let i = 0; i < 50; i++) {
@@ -862,14 +959,14 @@
           <div className="bg-white rounded-[40px] p-10 mb-12 shadow-2xl max-w-6xl pop-in"
                style={{ animationDelay: '0.6s' }}>
             <div className="flex flex-wrap gap-3 justify-center">
-              {collected.map(item => {
+              {collected.map((item, idx) => {
                 const info = COLOR_MAP[item.color];
                 const text = item.category === '친구'
                   ? `${item.target}—${item.keyword}`
                   : item.keyword;
                 return (
                   <div
-                    key={item.id}
+                    key={idx}
                     className="rounded-full px-6 py-4 text-3xl font-bold shadow"
                     style={{ background: info.hex }}
                   >
