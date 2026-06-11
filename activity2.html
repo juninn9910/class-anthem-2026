@@ -342,7 +342,7 @@
       school: "경산자인학교",
       grade: "중학교 3학년",
       teachers: [
-        { name: "이수현 선생님", roles: ["담임", "과학", "사회"] },
+        { name: "이수현 선생님", roles: ["담임", "과학"] },
         { name: "박정인 선생님", roles: ["부담임", "정보통신활용", "주제선택", "동아리"] }
       ],
       students: [
@@ -364,7 +364,7 @@
         "선생님께 '안녕하세요' 친구에게 '안녕'"
       ],
       shared_memories: [
-        { text: "청도 숲체원 현장체험학습", song_friendly: true },
+        { text: "4월 청도 숲체원 현장체험학습", song_friendly: true },
         { text: "예술·체육시간 필라테스",       song_friendly: true },
         { text: "졸업사진 촬영",                 song_friendly: true },
         { text: "지진 대피 훈련",                song_friendly: false },
@@ -376,7 +376,7 @@
     // 양념 풀(자연어 문장 사전 정의) — 학급 단위 사실만
     const SEASONING_POOL = [
       "가장 좋아하는 곳은 운동장이에요.",
-      "청도 숲체원으로 현장체험학습을 다녀왔어요.",
+      "4월에 청도 숲체원으로 현장체험학습을 다녀왔어요.",
       "예술·체육시간에는 필라테스를 해요.",
       "졸업사진을 함께 찍었어요.",
       "5월에 교생 선생님이 오셨어요.",
@@ -423,7 +423,7 @@
       "이정구 선생님": { emoji: "", label: "이정구 선생님" },
       "채지원 선생님": { emoji: "", label: "채지원 선생님" },
       "김지숙 선생님": { emoji: "", label: "김지숙 선생님" },
-      "손가영 선생님": { emoji: "", label: "손가영 선생님" },
+      "정동진 선생님": { emoji: "", label: "정동진 선생님" },
       "김경신 선생님": { emoji: "", label: "김경신 선생님" },
       "정유희 선생님": { emoji: "", label: "정유희 선생님" },
       // ID 8
@@ -586,22 +586,53 @@
     function buildSunoPrompt(collected, seasonings, selectedGenres) {
       const sorted = (cat) => collected
         .filter(c => c.category === cat)
-        .sort((a, b) => a.id - b.id)
-        .map(c => c.sentence);
+        .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+        .map(c => c.sentence.replace(/[.!?]+$/, ''));
 
-      const friend  = sorted('친구');
-      const teacher = sorted('선생님');
+      const friends = sorted('친구');
+      const teachers = sorted('선생님');
       const daily   = sorted('일상');
       const school  = sorted('학교');
 
-      const header = `${CLASS_CONTEXT.school} ${CLASS_CONTEXT.grade} 우리 반의 테마곡.`;
-      const main = [...friend, ...teacher, ...daily, ...school].join(' ');
-      const spice = seasonings.join(' ');
-      const style = selectedGenres && selectedGenres.length > 0
-        ? selectedGenres.map(k => GENRE_PRESETS[k].meta).join(' ')
-        : "[Children's Pop] [Upbeat] [Acoustic Guitar] [Mid-tempo] [Korean Lyrics]";
+      const styleTag = selectedGenres && selectedGenres.length > 0
+        ? selectedGenres.map(k => GENRE_PRESETS[k]?.meta).filter(Boolean).join(' ')
+        : "[Children's Pop] [Upbeat] [Acoustic Guitar] [Mid-tempo]";
 
-      return `${header}\n\n${main}\n\n${spice}\n\n${style}`;
+      const spiceBlock = seasonings.length > 0
+        ? `\n\n[Optional details to weave in naturally — do not force all of them]\n${seasonings.join('\n')}`
+        : '';
+
+      return `[Title: 우리반]
+${styleTag} [Korean Lyrics] [Repeating Hook: 우리반]
+
+[CRITICAL THEME — read carefully]
+This is a Korean class anthem titled "우리반" (Our Class), for ${CLASS_CONTEXT.school} ${CLASS_CONTEXT.grade}.
+The song celebrates OUR ENTIRE CLASS as a whole — every classmate, every teacher, every daily moment, every place in our school — treated with EQUAL WEIGHT.
+DO NOT make any single person (classmate or teacher), single place, or single item the main subject of the song.
+The Korean word "우리반" MUST be the central, repeating hook throughout (in chorus, refrain, and bridge).
+
+[Required Chorus — must repeat between every verse]
+우리반 우리반 신나는 우리반
+다 같이 부르는 우리반 노래
+우리반 우리반 함께하는 우리반
+
+[Verse 1 — Our classmates (transform these into short, chant-like, repetitive children's-song lines; mention all five names together when possible):]
+${friends.join('\n')}
+
+[Verse 2 — Our teachers and class activities:]
+${teachers.join('\n')}
+
+[Verse 3 — Our daily routine at school:]
+${daily.join('\n')}
+
+[Verse 4 — Our school environment:]
+${school.join('\n')}${spiceBlock}
+
+[Required Structure]
+Intro → Chorus → Verse 1 → Chorus → Verse 2 → Chorus → Verse 3 → Verse 4 → Final Chorus → Outro
+End on the "우리반" chorus.
+
+${styleTag} [Korean Lyrics] [Title: 우리반] [Hook: 우리반]`;
     }
 
     function pickSeasonings() {
