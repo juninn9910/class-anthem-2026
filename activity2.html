@@ -373,21 +373,71 @@
       ]
     };
 
-    // 양념 풀(자연어 문장 사전 정의) — 학급 단위 사실만
-    const SEASONING_POOL = [
-      "가장 좋아하는 곳은 운동장이에요.",
-      "4월에 청도 숲체원으로 현장체험학습을 다녀왔어요.",
-      "예술·체육시간에는 필라테스를 해요.",
-      "졸업사진을 함께 찍었어요.",
-      "5월에 교생 선생님이 오셨어요.",
-      "올해 중학교를 졸업해요.",
-      "노란 학교버스를 타고 학교에 와요.",
-      "1층 음악실에서 음악 수업을 해요.",
-      "2층 컴퓨터실에서 정보 수업을 해요.",
-      "3층 체력단련실에서 운동을 해요.",
-      "점심을 먹고 양치를 해요.",
-      "선생님께 '안녕하세요' 인사해요."
+    // 양념 풀 — 카테고리별 그룹. 학급 단위 사실만.
+    // ⚠️ Suno 금지: '와요/가요/마요' 등 영문 아티스트명 오인 어미 회피
+    const SEASONING_GROUPS = [
+      {
+        group: "🏫 우리 학교",
+        items: [
+          "우리 학교 이름은 경산자인학교예요.",
+          "경산자인학교는 특수학교예요.",
+          "우리 학교에는 운동장이 넓어요.",
+          "우리 학교에 꿈오름 장터가 열려요.",
+          "우리 학교에는 제과제빵실이 있어요."
+        ]
+      },
+      {
+        group: "🎓 우리 학년·졸업",
+        items: [
+          "우리는 중학교 3학년이에요.",
+          "올해 우리는 중학교를 졸업해요.",
+          "내년에 우리는 고등학생이 돼요.",
+          "함께 졸업사진을 찍었어요.",
+          "우리는 같은 반 친구예요."
+        ]
+      },
+      {
+        group: "👫 우리 반 친구들",
+        items: [
+          "우리 반 친구는 다섯 명이에요.",
+          "현민이, 승원이, 지후, 서연이, 한수가 우리 반이에요.",
+          "친구들과 사이좋게 지내요.",
+          "다 같이 노래 부르기를 좋아해요.",
+          "지후는 기타 선율을 좋아해요."
+        ]
+      },
+      {
+        group: "👩‍🏫 우리 선생님",
+        items: [
+          "담임 선생님은 이수현 선생님이에요.",
+          "정보 선생님은 박정인 선생님이에요.",
+          "선생님들이 우리를 사랑해 주셔요.",
+          "5월에 교생 선생님이 오셨어요."
+        ]
+      },
+      {
+        group: "📅 우리의 하루",
+        items: [
+          "노란 학교버스를 타고 등교해요.",
+          "아침에 우유를 마셔요.",
+          "점심을 먹기 전에 손을 씻어요.",
+          "점심을 먹고 나서 양치를 해요.",
+          "선생님께 '안녕하세요' 인사해요."
+        ]
+      },
+      {
+        group: "🌳 우리의 추억",
+        items: [
+          "4월에 청도 숲체원으로 현장체험학습을 다녀왔어요.",
+          "예술·체육시간에 필라테스를 했어요.",
+          "스포츠 시간에 닌텐도 배드민턴을 했어요.",
+          "동아리 시간에 태블릿으로 타자를 연습했어요."
+        ]
+      }
     ];
+
+    // 평탄화된 전체 양념 리스트 (전체 추가용)
+    const ALL_SEASONINGS = SEASONING_GROUPS.flatMap(g => g.items);
 
     // 색깔 매핑
     const COLOR_MAP = {
@@ -586,7 +636,11 @@
     function buildSunoPrompt(collected, seasonings, selectedGenres) {
       const sorted = (cat) => collected
         .filter(c => c.category === cat)
-        .sort((a, b) => String(a.id).localeCompare(String(b.id)))
+        .sort((a, b) => {
+          const na = parseInt(String(a.id).replace(/\D/g, ''), 10) || 0;
+          const nb = parseInt(String(b.id).replace(/\D/g, ''), 10) || 0;
+          return na - nb;
+        })
         .map(c => c.sentence.replace(/[.!?]+$/, ''));
 
       const friends = sorted('친구');
@@ -596,48 +650,49 @@
 
       const styleTag = selectedGenres && selectedGenres.length > 0
         ? selectedGenres.map(k => GENRE_PRESETS[k]?.meta).filter(Boolean).join(' ')
-        : "[Children's Pop] [Upbeat] [Acoustic Guitar] [Mid-tempo]";
+        : "[Children's Pop] [Upbeat] [Mid-tempo]";
 
       const spiceBlock = seasonings.length > 0
-        ? `\n\n[Optional details to weave in naturally — do not force all of them]\n${seasonings.join('\n')}`
+        ? `\n\n[우리 반에 대한 추가 정보 — 자연스럽게 녹여서, 전부 억지로 넣지 말 것]\n${seasonings.map(s => '- ' + s).join('\n')}`
         : '';
 
+      const allLines = [...friends, ...teachers, ...daily, ...school]
+        .map(s => '- ' + s).join('\n');
+
       return `[Title: 우리반]
-${styleTag} [Korean Lyrics] [Repeating Hook: 우리반]
+${styleTag} [Acoustic Guitar] [Korean Lyrics] [Warm] [Sing-along]
 
-[CRITICAL THEME — read carefully]
-This is a Korean class anthem titled "우리반" (Our Class), for ${CLASS_CONTEXT.school} ${CLASS_CONTEXT.grade}.
-The song celebrates OUR ENTIRE CLASS as a whole — every classmate, every teacher, every daily moment, every place in our school — treated with EQUAL WEIGHT.
-DO NOT make any single person (classmate or teacher), single place, or single item the main subject of the song.
-The Korean word "우리반" MUST be the central, repeating hook throughout (in chorus, refrain, and bridge).
+[이 노래의 정체성 — 가장 중요]
+이 곡은 ${CLASS_CONTEXT.school} ${CLASS_CONTEXT.grade} "우리 반"의 테마곡입니다.
+주인공은 특정 한 사람도, 특정 한 장소도, 특정 한 물건도 아닙니다.
+주인공은 "함께 생활하는 우리 반 전체"라는 정체성과 그 분위기입니다.
+- 우리는 경산자인학교에 다니는 중학교 3학년 한 반입니다.
+- 우리는 다섯 명의 친구와 선생님들이 함께 지냅니다.
+- 우리는 올해 중학교를 졸업하고 내년에 고등학생이 됩니다.
+- 매일 함께 등교하고, 수업하고, 밥 먹고, 웃으며 하루를 보냅니다.
+이 모든 것이 "우리 반"이라는 하나의 흐름으로 이어지도록 작사하세요.
 
-[Required Chorus — must repeat between every verse]
-우리반 우리반 신나는 우리반
-다 같이 부르는 우리반 노래
-우리반 우리반 함께하는 우리반
+[작사 규칙]
+1. 아래 핵심어들은 "우리 반을 설명하는 재료"입니다. 어느 하나에 노래 전체가 쏠리면 안 됩니다.
+   (예: "1층"이나 "전동휠체어" 같은 단어가 곡의 주제가 되어선 안 됩니다. 그저 우리 반을 이루는 작은 조각일 뿐입니다.)
+2. 모든 재료를 균형 있게, 따뜻하고 단순한 동요 스타일로 풀어주세요.
+3. 후렴(Chorus)은 "우리 반"과 "경산자인학교", "함께", "졸업" 같은 정체성 단어를 중심으로,
+   부르기 쉽고 반복되는 형태로 직접 만들어 주세요. (틀에 박힌 한 줄 반복이 아니라, 이 반만의 후렴이면 좋습니다.)
+4. 기타 선율(어쿠스틱 기타)이 곡 전체에 따뜻하게 흐르게 해주세요. 우리 반 친구가 기타 소리를 무척 좋아합니다.
 
-[Verse 1 — Our classmates (transform these into short, chant-like, repetitive children's-song lines; mention all five names together when possible):]
-${friends.join('\n')}
+[우리 반을 이루는 재료들 — 균형 있게 사용]
+${allLines}${spiceBlock}
 
-[Verse 2 — Our teachers and class activities:]
-${teachers.join('\n')}
+[구성 제안]
+Intro(기타 선율) → Verse(친구들) → Chorus(우리 반) → Verse(선생님·하루) → Chorus(우리 반) → Bridge(졸업·고등학생) → Final Chorus(우리 반, 경산자인학교) → Outro
+마지막은 "우리 반"과 학교 이름을 함께 부르며 따뜻하게 마무리해 주세요.
 
-[Verse 3 — Our daily routine at school:]
-${daily.join('\n')}
-
-[Verse 4 — Our school environment:]
-${school.join('\n')}${spiceBlock}
-
-[Required Structure]
-Intro → Chorus → Verse 1 → Chorus → Verse 2 → Chorus → Verse 3 → Verse 4 → Final Chorus → Outro
-End on the "우리반" chorus.
-
-${styleTag} [Korean Lyrics] [Title: 우리반] [Hook: 우리반]`;
+${styleTag} [Acoustic Guitar] [Korean Lyrics] [Title: 우리반]`;
     }
 
     function pickSeasonings() {
       const count = 2 + Math.floor(Math.random() * 3); // 2~4개
-      const shuffled = [...SEASONING_POOL].sort(() => Math.random() - 0.5);
+      const shuffled = [...ALL_SEASONINGS].sort(() => Math.random() - 0.5);
       return shuffled.slice(0, count);
     }
 
@@ -807,9 +862,11 @@ ${styleTag} [Korean Lyrics] [Title: 우리반] [Hook: 우리반]`;
               onChange={setPromptText}
               onCopy={copyToClipboard}
               copied={copied}
-              allSeasonings={SEASONING_POOL}
+              seasoningGroups={SEASONING_GROUPS}
+              allSeasonings={ALL_SEASONINGS}
               seasonings={seasonings}
               onToggle={toggleSeasoning}
+              onSetSeasonings={setSeasonings}
             />
             <WorksheetPanel
               onPDF={downloadPDF}
@@ -976,7 +1033,9 @@ ${styleTag} [Korean Lyrics] [Title: 우리반] [Hook: 우리반]`;
     }
 
     // ───────────────────────── Suno 박스 ─────────────────────────
-    function SunoBox({ promptText, onChange, onCopy, copied, allSeasonings, seasonings, onToggle }) {
+    function SunoBox({ promptText, onChange, onCopy, copied, seasoningGroups, allSeasonings, seasonings, onToggle, onSetSeasonings }) {
+      const allOn = allSeasonings.length > 0 && allSeasonings.every(s => seasonings.includes(s));
+
       return (
         <div className="bg-white rounded-3xl p-6 shadow-xl pop-in">
           <div className="flex items-center gap-3 mb-4">
@@ -991,24 +1050,78 @@ ${styleTag} [Korean Lyrics] [Title: 우리반] [Hook: 우리반]`;
           />
 
           <div className="mt-4 mb-3">
-            <div className="text-xl font-bold mb-2">🌶️ 양념 고르기 <span className="text-sm text-gray-500 font-normal">(탭해서 추가/빼기)</span></div>
-            <div className="grid grid-cols-2 gap-2 max-h-44 overflow-y-auto pr-1">
-              {allSeasonings.map(s => {
-                const on = seasonings.includes(s);
-                return (
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="text-xl font-bold">
+                🌶️ 양념 고르기
+                <span className="text-sm text-gray-500 font-normal ml-1">(탭해서 추가/빼기)</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onSetSeasonings(allOn ? [] : [...allSeasonings])}
+                  className={`text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm transition hover:scale-105 ${
+                    allOn ? 'bg-gray-200 text-gray-600' : 'bg-amber-400 text-white'
+                  }`}
+                >
+                  {allOn ? '✕ 전체 빼기' : '✓ 전체 추가'}
+                </button>
+                {seasonings.length > 0 && !allOn && (
                   <button
-                    key={s}
-                    onClick={() => onToggle(s)}
-                    className={`text-left px-3 py-2 rounded-xl text-sm transition leading-snug ${
-                      on
-                        ? 'bg-amber-300 text-amber-900 shadow-md font-bold'
-                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                    }`}
+                    onClick={() => onSetSeasonings([])}
+                    className="text-sm font-bold px-3 py-1.5 rounded-lg shadow-sm bg-gray-100 text-gray-500 hover:bg-gray-200 transition"
                   >
-                    {on ? '✓ ' : '+ '}{s}
+                    비우기
                   </button>
+                )}
+              </div>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto pr-1 space-y-3">
+              {seasoningGroups.map(grp => {
+                const groupAllOn = grp.items.every(s => seasonings.includes(s));
+                return (
+                  <div key={grp.group}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="text-base font-bold text-gray-700">{grp.group}</div>
+                      <button
+                        onClick={() => {
+                          if (groupAllOn) {
+                            onSetSeasonings(seasonings.filter(s => !grp.items.includes(s)));
+                          } else {
+                            const merged = [...new Set([...seasonings, ...grp.items])];
+                            onSetSeasonings(merged);
+                          }
+                        }}
+                        className={`text-xs font-bold px-2 py-1 rounded-md transition ${
+                          groupAllOn ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {groupAllOn ? '✓ 전체' : '+ 전체'}
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5">
+                      {grp.items.map(s => {
+                        const on = seasonings.includes(s);
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => onToggle(s)}
+                            className={`text-left px-3 py-2 rounded-xl text-sm transition leading-snug ${
+                              on
+                                ? 'bg-amber-300 text-amber-900 shadow-md font-bold'
+                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                            }`}
+                          >
+                            {on ? '✓ ' : '+ '}{s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
+            </div>
+            <div className="text-xs text-gray-400 mt-2">
+              선택된 양념: {seasonings.length} / {allSeasonings.length}개
             </div>
           </div>
 
@@ -1238,24 +1351,6 @@ ${styleTag} [Korean Lyrics] [Title: 우리반] [Hook: 우리반]`;
         <span>
           {before}
           <span className={keywordCls}>{keyword}</span>
-          {after}
-        </span>
-      );
-    }
-
-    function renderSentenceForD(item) {
-      const info = COLOR_MAP[item.color];
-      const sentence = item.sentence;
-      const keyword = item.keyword;
-      const idx = sentence.indexOf(keyword);
-      if (idx === -1) return <span>{sentence}</span>;
-      const before = sentence.substring(0, idx);
-      const after = sentence.substring(idx + keyword.length);
-      return (
-        <span>
-          {before}
-          <span className="arrow">➡️</span>
-          <span className={`keyword ${info.className}`}>{keyword}</span>
           {after}
         </span>
       );
