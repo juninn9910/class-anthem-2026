@@ -755,8 +755,7 @@
       useEffect(() => {
         setTimeout(() => playPop(), 200);
         setTimeout(() => {
-          const names = order.map(s => s.name).join(', ');
-          speak(`우리 차례를 알려줄게요! , { pitch: 1.15, rate: 0.95 });
+          speak('우리 차례를 알려줄게요!', { pitch: 1.15, rate: 0.95 });
         }, 500);
       }, []);
 
