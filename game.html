@@ -756,7 +756,7 @@
         setTimeout(() => playPop(), 200);
         setTimeout(() => {
           const names = order.map(s => s.name).join(', ');
-          speak(`우리 차례를 알려줄게요! ${names} 순서로 돌아가요. 마지막 친구가 끝나면 다시 첫 번째 친구 차례로 돌아와요. 자, 첫 번째 김현민 친구부터 시작할까요?`, { pitch: 1.15, rate: 0.95 });
+          speak(`우리 차례를 알려줄게요! , { pitch: 1.15, rate: 0.95 });
         }, 500);
       }, []);
 
@@ -917,7 +917,7 @@
       useEffect(() => {
         setTimeout(() => playPop(), 200);
         setTimeout(() => {
-          speak('먼저 어떻게 하는지 연습해 볼까요? 돌림판을 돌리고, 나온 색깔을 눌러보세요!', { pitch: 1.15, rate: 0.95 });
+          speak('돌림판을 돌리고, 나온 색깔을 눌러보세요!', { pitch: 1.15, rate: 0.95 });
         }, 500);
       }, []);
 
@@ -953,7 +953,7 @@
         playPop();
         setStep('done');
         setTimeout(() => {
-          speak('정답이에요! 정말 잘했어요! 이제 진짜로 시작해 볼까요?', { pitch: 1.25, rate: 0.95 });
+          speak('정답이에요! 정말 잘했어요!', { pitch: 1.25, rate: 0.95 });
         }, 300);
       }
 
