@@ -163,12 +163,25 @@
       text-align: center;
       min-height: 14mm;
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+    }
+    .ws-C .ws-match .right .cue .cue-row {
+      display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
     }
     .ws-C .ws-match .right .cue .emoji {
       font-size: 24pt;
+    }
+    .ws-C .ws-match .right .cue .cue-name {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #D0D0D0;          /* 연한 회색: 신서연이 이름 못 적으니 미리 박아둠 */
+      letter-spacing: 1px;
     }
 
     /* D형 - 친구 4명 카드, 좋아하는 것에 점선 동그라미 */
@@ -487,6 +500,22 @@
       "2층":    { emoji: "2️⃣🏫", label: "2층" },
       "3층":    { emoji: "3️⃣🏫", label: "3층" }
     };
+
+    // ───────────────────────── 대표 키워드 미리보기용 샘플 ─────────────────────────
+    // 게임을 돌리지 않고도 활동지를 미리 인쇄할 수 있도록 대표 키워드 10개 구성
+    // (친구 4 + 선생님 2 + 일상 2 + 학교 2, 게임 데이터 구조와 동일)
+    const SAMPLE_COLLECTED = [
+      { id: "f4",  color: "pink",    category: "친구",   asked_to: "윤승원", target: "김현민", level: "가", keyword: "개미",        sentence: "김현민은 개미를 좋아해요." },
+      { id: "f2",  color: "pink",    category: "친구",   asked_to: "박지후", target: "윤승원", level: "나", keyword: "파파독",      sentence: "윤승원은 파파독을 좋아해요." },
+      { id: "f6",  color: "pink",    category: "친구",   asked_to: "신서연", target: "박지후", level: "나", keyword: "야구 응원가", sentence: "박지후는 야구 응원가를 좋아해요." },
+      { id: "f8",  color: "pink",    category: "친구",   asked_to: "이한수", target: "신서연", level: "다", keyword: "코코몽",      sentence: "신서연은 코코몽을 좋아해요." },
+      { id: "t1",  color: "yellow",  category: "선생님", asked_to: "김현민", target: "학급 공통", level: "가", keyword: "이수현 선생님", sentence: "우리 담임 선생님은 이수현 선생님이에요." },
+      { id: "t5",  color: "yellow",  category: "선생님", asked_to: "윤승원", target: "학급 공통", level: "가", keyword: "전동휠체어",   sentence: "박정인 선생님은 전동휠체어를 타고 계셔요." },
+      { id: "d5",  color: "orange",  category: "일상",   asked_to: "박지후", target: "학급 공통", level: "나", keyword: "양치",       sentence: "밥을 다 먹고 나서는 양치를 해요." },
+      { id: "d10", color: "orange",  category: "일상",   asked_to: "신서연", target: "학급 공통", level: "나", keyword: "목요일",     sentence: "오늘은 목요일이에요." },
+      { id: "s1",  color: "skyblue", category: "학교",   asked_to: "이한수", target: "학급 공통", level: "다", keyword: "3학년 2반",  sentence: "우리 반은 3학년 2반이에요." },
+      { id: "s2",  color: "skyblue", category: "학교",   asked_to: "김현민", target: "학급 공통", level: "가", keyword: "고등학생",   sentence: "우리는 내년에 고등학생이 돼요." }
+    ];
 
     // ───────────────────────── 곡 분위기 시식코너 (장르 프리셋) ─────────────────────────
     const GENRE_PRESETS = {
@@ -813,12 +842,21 @@ ${styleTag} [Acoustic Guitar] [Korean Lyrics] [Title: 우리반]`;
           <div className="min-h-screen flex flex-col items-center justify-center p-8">
             <div className="text-9xl mb-6">😺</div>
             <h1 className="text-5xl font-bold mb-4 text-gray-700">{error}</h1>
-            <button
-              onClick={goGame}
-              className="mt-8 bg-pink-400 text-white text-3xl font-bold px-12 py-6 rounded-full shadow-xl hover:scale-105 transition"
-            >
-              🎮 게임으로 돌아가기
-            </button>
+            <p className="text-2xl text-gray-400 mb-8">게임을 안 돌렸다면, 대표 키워드로 활동지를 미리 뽑을 수 있어요.</p>
+            <div className="flex gap-5 flex-wrap justify-center">
+              <button
+                onClick={() => { setError(null); setData(SAMPLE_COLLECTED); }}
+                className="bg-sky-400 text-white text-3xl font-bold px-12 py-6 rounded-full shadow-xl hover:scale-105 transition"
+              >
+                📄 대표 키워드 미리보기
+              </button>
+              <button
+                onClick={goGame}
+                className="bg-pink-400 text-white text-3xl font-bold px-12 py-6 rounded-full shadow-xl hover:scale-105 transition"
+              >
+                🎮 게임으로 돌아가기
+              </button>
+            </div>
           </div>
         );
       }
@@ -831,10 +869,19 @@ ${styleTag} [Acoustic Guitar] [Korean Lyrics] [Title: 우리반]`;
         );
       }
 
+      const isPreview = data === SAMPLE_COLLECTED;
+
       return (
         <div className="min-h-screen p-8 relative">
           <div className="deco-circle" style={{ background: 'var(--pink)',    width: 350, height: 350, top: '-80px',  left: '-80px' }} />
           <div className="deco-circle" style={{ background: 'var(--yellow)',  width: 300, height: 300, bottom: '-60px', right: '-60px' }} />
+
+          {isPreview && (
+            <div className="relative z-10 mb-4 rounded-2xl px-6 py-3 text-center text-xl font-bold text-amber-800 shadow"
+              style={{ background: '#FFF3CD', border: '2px dashed #FFB300' }}>
+              📄 대표 키워드 미리보기 모드 — 실제 수업에서는 학생들이 모은 핵심어로 채워져요
+            </div>
+          )}
 
           {/* 헤더 */}
           <header className="flex justify-between items-center mb-6 relative z-10">
@@ -1276,10 +1323,14 @@ ${styleTag} [Acoustic Guitar] [Korean Lyrics] [Title: 우리반]`;
               <div style={{ fontSize: '20pt', fontWeight: 700, marginBottom: '6mm' }}>🎯 그림 단서</div>
               {shuffledRight.map(item => {
                 const v = KEYWORD_VISUAL[item.keyword] || { emoji: '', label: item.keyword };
+                const showName = item.category === '친구' && item.target && item.target !== '학급 공통';
                 return (
                   <div key={item.id} className="cue">
-                    {v.emoji && <span className="emoji">{v.emoji}</span>}
-                    <span>{v.label}</span>
+                    <div className="cue-row">
+                      {v.emoji && <span className="emoji">{v.emoji}</span>}
+                      <span>{v.label}</span>
+                    </div>
+                    {showName && <span className="cue-name">{item.target}</span>}
                   </div>
                 );
               })}
