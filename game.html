@@ -638,6 +638,10 @@
         setPhase('flowchart');
       }
 
+      function goPractice() {
+        setPhase('practice');
+      }
+
       function startGame() {
         setPhase('playing');
         setTurnIndex(0);
@@ -659,8 +663,9 @@
         startGame();
       }
 
-      if (phase === 'start')     return <StartScreen onShowFlow={goFlowchart} />;
-      if (phase === 'flowchart') return <FlowchartScreen onStart={startGame} />;
+      if (phase === 'start')     return <StartScreen onShowFlow={goFlowchart} onPractice={goPractice} />;
+      if (phase === 'flowchart') return <FlowchartScreen onStart={startGame} onPractice={goPractice} />;
+      if (phase === 'practice')  return <PracticeScreen onBack={() => setPhase('start')} onStart={startGame} />;
       if (phase === 'complete')  return <CompleteScreen collected={collected} onGo={goActivity2} onRestart={restart} />;
 
       return (
@@ -684,7 +689,7 @@
     }
 
     // ───────────────────────── 시작 화면 ─────────────────────────
-    function StartScreen({ onShowFlow }) {
+    function StartScreen({ onShowFlow, onPractice }) {
       useEffect(() => {
         // 진입 시 발랄한 효과음 + 인트로 멘트
         setTimeout(() => playSuccess(), 300);
@@ -723,22 +728,28 @@
             ))}
           </div>
 
-          <button
-            onClick={onShowFlow}
-            className="text-white text-6xl font-bold px-20 py-8 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1 pop-in"
-            style={{
-              background: 'linear-gradient(135deg, #F48FB1 0%, #FFB74D 100%)',
-              animationDelay: '0.9s'
-            }}
-          >
-            📋 순서도 보기
-          </button>
+          <div className="flex gap-6 pop-in" style={{ animationDelay: '0.9s' }}>
+            <button
+              onClick={onPractice}
+              className="text-white text-5xl font-bold px-14 py-7 rounded-full shadow-2xl transition-all hover:scale-110 hover:-rotate-1"
+              style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%)' }}
+            >
+              🎯 연습하기
+            </button>
+            <button
+              onClick={onShowFlow}
+              className="text-white text-5xl font-bold px-14 py-7 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1"
+              style={{ background: 'linear-gradient(135deg, #F48FB1 0%, #FFB74D 100%)' }}
+            >
+              📋 순서도 보기
+            </button>
+          </div>
         </div>
       );
     }
 
     // ───────────────────────── 순서도 화면 (학생 차례 순환도) ─────────────────────────
-    function FlowchartScreen({ onStart }) {
+    function FlowchartScreen({ onStart, onPractice }) {
       // 한 바퀴 = 5명. 마지막 뒤에 다시 첫 주자로 순환.
       const order = STUDENT_ORDER.slice(0, 5).map(name => STUDENTS.find(s => s.name === name));
 
@@ -848,16 +859,198 @@
             })}
           </div>
 
-          <button
-            onClick={onStart}
-            className="text-white text-6xl font-bold px-20 py-7 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1 pop-in mt-6"
-            style={{
-              background: 'linear-gradient(135deg, #66BB6A 0%, #43A047 100%)',
-              animationDelay: '1.2s'
-            }}
-          >
-            ▶️ 시작하기
-          </button>
+          <div className="flex gap-5 mt-6 pop-in" style={{ animationDelay: '1.2s' }}>
+            <button
+              onClick={onPractice}
+              className="text-white text-5xl font-bold px-12 py-6 rounded-full shadow-2xl transition-all hover:scale-110 hover:-rotate-1"
+              style={{ background: 'linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%)' }}
+            >
+              🎯 먼저 연습
+            </button>
+            <button
+              onClick={onStart}
+              className="text-white text-6xl font-bold px-16 py-6 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1"
+              style={{ background: 'linear-gradient(135deg, #66BB6A 0%, #43A047 100%)' }}
+            >
+              ▶️ 시작하기
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ───────────────────────── 연습(시범) 화면 ─────────────────────────
+    function PracticeScreen({ onBack, onStart }) {
+      // step: 'intro'(색깔 고르기) → 'question'(문제) → 'done'(칭찬)
+      const [step, setStep] = useState('intro');
+      const [showHint, setShowHint] = useState(false);
+      const [wrongShake, setWrongShake] = useState(false);
+
+      // 연습 전용 문제 (본 게임 풀과 무관, 3지선다)
+      const PRACTICE_Q = {
+        color: 'skyblue',
+        category: '학교',
+        question: '우리는 몇 학년일까요? 🏫',
+        answer: '3학년',
+        options: ['1학년', '2학년', '3학년']  // 화면 표시 순서 그대로
+      };
+
+      useEffect(() => {
+        setTimeout(() => playPop(), 200);
+        setTimeout(() => {
+          speak('먼저 어떻게 하는지 연습해 볼까요? 돌림판을 돌리고, 나온 색깔을 눌러보세요!', { pitch: 1.15, rate: 0.95 });
+        }, 500);
+      }, []);
+
+      function handleColor() {
+        playPop();
+        setStep('question');
+        setTimeout(() => {
+          speak(`학교 문제를 골랐네요! ${PRACTICE_Q.question}`);
+        }, 250);
+      }
+
+      function handleOption(opt) {
+        if (opt !== PRACTICE_Q.answer) {
+          playWrong();
+          setShowHint(true);
+          setWrongShake(true);
+          speak('다시 한 번 골라볼까요? 반짝이는 답을 골라보세요.');
+          setTimeout(() => setWrongShake(false), 600);
+          return;
+        }
+        playPop();
+        setStep('done');
+        setTimeout(() => {
+          speak('정답이에요! 정말 잘했어요! 이제 진짜로 시작해 볼까요?', { pitch: 1.25, rate: 0.95 });
+        }, 300);
+      }
+
+      const info = COLOR_MAP[PRACTICE_Q.color];
+
+      return (
+        <div className="min-h-screen flex flex-col p-8 relative overflow-hidden">
+          {/* 상단: 연습 모드 배지 */}
+          <div className="flex justify-between items-center mb-4">
+            <div className="rounded-full px-8 py-3 text-3xl font-black text-white shadow-lg"
+              style={{ background: 'linear-gradient(135deg, #4FC3F7, #29B6F6)' }}>
+              🎯 연습 시간
+            </div>
+            <button
+              onClick={onBack}
+              className="bg-white/80 hover:bg-white rounded-full px-6 py-3 text-2xl font-bold shadow"
+            >
+              ← 처음으로
+            </button>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center">
+            {step === 'intro' && (
+              <div className="flex flex-col items-center">
+                <div className="text-5xl mb-3 text-gray-700 font-black">🎡 연습해 볼까요?</div>
+                <div className="text-3xl mb-10 text-gray-500">
+                  돌림판을 돌리고 나온 색깔을 눌러요! (연습은 하늘색이에요)
+                </div>
+                <div className="grid grid-cols-2 gap-10">
+                  {Object.entries(COLOR_MAP).map(([key, ci]) => {
+                    const isPractice = key === 'skyblue';
+                    return (
+                      <button
+                        key={key}
+                        disabled={!isPractice}
+                        onClick={handleColor}
+                        data-no-pop
+                        className={`color-btn rounded-full flex flex-col items-center justify-center ${isPractice ? 'wheel-idle' : ''}`}
+                        style={{
+                          background: `radial-gradient(circle at 30% 30%, ${ci.hex} 0%, ${ci.deep} 100%)`,
+                          width: 240, height: 240,
+                          border: '8px solid white',
+                          boxShadow: isPractice ? '0 10px 25px rgba(0,0,0,0.15)' : 'none',
+                          opacity: isPractice ? 1 : 0.25,
+                          filter: isPractice ? 'none' : 'grayscale(0.6)',
+                          cursor: isPractice ? 'pointer' : 'not-allowed'
+                        }}
+                      >
+                        <div className="text-7xl mb-2 drop-shadow-md">{ci.emoji}</div>
+                        <div className="text-4xl font-black text-white drop-shadow-md">{ci.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {step === 'question' && (
+              <div className={`w-full max-w-7xl ${wrongShake ? 'shake' : 'pop-in'}`}>
+                <div className="bg-white rounded-[40px] shadow-2xl p-12" style={{ border: `8px solid ${info.hex}` }}>
+                  <div className="flex items-center justify-center gap-3 mb-4">
+                    <span className="text-3xl" style={{ background: info.chipBg, padding: '6px 20px', borderRadius: '999px' }}>
+                      {info.emoji} {info.label}
+                    </span>
+                    <span className="text-3xl font-bold text-gray-500">· 연습 문제</span>
+                  </div>
+                  <div className="text-7xl font-black text-center mb-10 mt-6 leading-tight">
+                    {PRACTICE_Q.question}
+                  </div>
+                  <div className="grid grid-cols-3 gap-5">
+                    {PRACTICE_Q.options.map((opt, idx) => {
+                      const isAnswer = opt === PRACTICE_Q.answer;
+                      const isHighlight = showHint && isAnswer;
+                      return (
+                        <button
+                          key={idx}
+                          data-no-pop
+                          onClick={() => handleOption(opt)}
+                          className={`option-btn rounded-3xl py-8 px-3 text-4xl font-black shadow-lg leading-tight ${isHighlight ? 'hint' : ''}`}
+                          style={isHighlight ? {} : {
+                            background: 'linear-gradient(135deg, #FFFDE7 0%, #FFE0B2 100%)',
+                            color: '#5D4037'
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {showHint && (
+                    <div className="text-center text-4xl mt-8 font-bold text-amber-700 pop-in">
+                      ✨ 반짝반짝 빛나는 답을 골라볼까요?
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {step === 'done' && (
+              <div className="flex flex-col items-center pop-in">
+                <div className="text-[160px] mb-2">🎉</div>
+                <div className="font-display text-8xl mb-4" style={{
+                  background: 'linear-gradient(135deg, #66BB6A, #43A047)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+                }}>
+                  정답! 잘했어요!
+                </div>
+                <div className="text-3xl text-gray-600 mb-12">
+                  이렇게 하면 돼요. 이제 진짜로 시작해 볼까요?
+                </div>
+                <div className="flex gap-6">
+                  <button
+                    onClick={onBack}
+                    className="bg-white text-gray-700 text-3xl font-bold px-10 py-6 rounded-full shadow-xl hover:scale-105 transition"
+                  >
+                    🔄 한 번 더 연습
+                  </button>
+                  <button
+                    onClick={onStart}
+                    className="text-white text-4xl font-bold px-14 py-6 rounded-full shadow-2xl hover:scale-110 transition"
+                    style={{ background: 'linear-gradient(135deg, #F48FB1 0%, #FFB74D 100%)' }}
+                  >
+                    ▶️ 진짜로 시작하기
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       );
     }
