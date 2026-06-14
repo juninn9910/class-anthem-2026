@@ -43,6 +43,11 @@
     }
     .wheel-idle { animation: wheel-pulse 3s ease-in-out infinite; }
 
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
     @keyframes hint-glow {
       0%, 100% {
         box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.85), 0 10px 30px rgba(255, 152, 0, 0.4);
@@ -495,6 +500,20 @@
         return STUDENTS.find(s => s.name === name);
       }, [turnIndex]);
 
+      // 차례가 바뀌면 발랄하게 안내 (색깔 고르기 화면 진입 시)
+      const ORDINAL = ['첫', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+      useEffect(() => {
+        if (phase !== 'playing' || !currentStudent || currentQ || listening) return;
+        const studentRound = STUDENT_ORDER
+          .slice(0, turnIndex + 1)
+          .filter(n => n === currentStudent.name).length;
+        const ord = ORDINAL[turnIndex] || (turnIndex + 1);
+        const t = setTimeout(() => {
+          speak(`자~ ${ord} 번째, ${currentStudent.name} 친구 차례예요!`, { pitch: 1.25, rate: 0.95 });
+        }, 350);
+        return () => clearTimeout(t);
+      }, [turnIndex, phase, currentQ, listening, currentStudent]);
+
       // 색깔별 남은 문제 수
       function remainingInCategory(color) {
         const cat = COLOR_MAP[color].cat;
@@ -538,9 +557,15 @@
         setShowHint(false);
         setWrongShake(false);
 
-        // 학생·카테고리 안내 + 문제 본문 읽기 (이모지는 speak()에서 자동 제거)
+        // 색깔 선택 즉시 피드백 + 문제 본문 읽기 (이모지는 speak()에서 자동 제거)
+        const catPhrase = {
+          '친구':   '친구 문제를 골랐네요! 친구 문제 보여줄게요.',
+          '선생님': '선생님 문제를 골랐네요! 선생님 문제 보여줄게요.',
+          '일상':   '일상 문제를 골랐네요! 일상 문제 보여줄게요.',
+          '학교':   '학교 문제를 골랐네요! 학교 문제 보여줄게요.'
+        }[cat] || '문제를 보여줄게요.';
         setTimeout(() => {
-          speak(`${currentStudent.name}님 차례. ${picked.question}`);
+          speak(`${catPhrase} ${picked.question}`);
         }, 200);
       }
 
@@ -606,6 +631,10 @@
         }
       }
 
+      function goFlowchart() {
+        setPhase('flowchart');
+      }
+
       function startGame() {
         setPhase('playing');
         setTurnIndex(0);
@@ -627,8 +656,9 @@
         startGame();
       }
 
-      if (phase === 'start')    return <StartScreen onStart={startGame} />;
-      if (phase === 'complete') return <CompleteScreen collected={collected} onGo={goActivity2} onRestart={restart} />;
+      if (phase === 'start')     return <StartScreen onShowFlow={goFlowchart} />;
+      if (phase === 'flowchart') return <FlowchartScreen onStart={startGame} />;
+      if (phase === 'complete')  return <CompleteScreen collected={collected} onGo={goActivity2} onRestart={restart} />;
 
       return (
         <PlayingScreen
@@ -651,7 +681,15 @@
     }
 
     // ───────────────────────── 시작 화면 ─────────────────────────
-    function StartScreen({ onStart }) {
+    function StartScreen({ onShowFlow }) {
+      useEffect(() => {
+        // 진입 시 발랄한 효과음 + 인트로 멘트
+        setTimeout(() => playSuccess(), 300);
+        setTimeout(() => {
+          speak('우리 반 테마곡 만들기를 시작해요! 우리 다 같이 순서대로 진행해 봐요!', { pitch: 1.2, rate: 0.95 });
+        }, 700);
+      }, []);
+
       return (
         <div className="min-h-screen flex flex-col items-center justify-center p-12 relative overflow-hidden">
           <div className="deco-circle" style={{ background: 'var(--pink)',    width: 400, height: 400, top: '-100px',  left: '-100px' }} />
@@ -683,14 +721,125 @@
           </div>
 
           <button
-            onClick={onStart}
+            onClick={onShowFlow}
             className="text-white text-6xl font-bold px-20 py-8 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1 pop-in"
             style={{
               background: 'linear-gradient(135deg, #F48FB1 0%, #FFB74D 100%)',
               animationDelay: '0.9s'
             }}
           >
-            시작하기 ✨
+            📋 순서도 보기
+          </button>
+        </div>
+      );
+    }
+
+    // ───────────────────────── 순서도 화면 (동그란 순환도) ─────────────────────────
+    function FlowchartScreen({ onStart }) {
+      const steps = [
+        { emoji: '🎡', title: '돌림판 돌리기', desc: '내 차례에 돌림판을 빙글빙글', color: '#F48FB1' },
+        { emoji: '🎨', title: '색깔 누르기',   desc: '나온 색깔을 화면에서 콕!',   color: '#FFB74D' },
+        { emoji: '❓', title: '문제 풀기',     desc: '우리 반 문제를 골라서 척척',  color: '#FFD54F' },
+        { emoji: '🎤', title: '듣고 따라하기', desc: '핵심어를 듣고 큰 소리로',     color: '#4FC3F7' },
+        { emoji: '🎁', title: '핵심어 모으기', desc: '하나씩 모아 모아 열 개까지!', color: '#BA68C8' }
+      ];
+
+      useEffect(() => {
+        setTimeout(() => playPop(), 200);
+        setTimeout(() => {
+          speak('우리 순서를 알려줄게요! 돌림판을 돌리고, 색깔을 누르고, 문제를 풀고, 듣고 따라 말해요. 그렇게 핵심어를 모으면 돼요! 준비됐나요?', { pitch: 1.15, rate: 0.95 });
+        }, 500);
+      }, []);
+
+      // 원형 배치 계산
+      const R = 290;          // 반지름
+      const cx = 360, cy = 360;
+      const n = steps.length;
+
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden">
+          <div className="deco-circle" style={{ background: 'var(--pink)',    width: 350, height: 350, top: '-80px',  right: '-80px' }} />
+          <div className="deco-circle" style={{ background: 'var(--skyblue)', width: 300, height: 300, bottom: '-60px', left: '-60px' }} />
+
+          <h1 className="font-display text-7xl mb-2 pop-in" style={{
+            background: 'linear-gradient(135deg, #F48FB1, #FFB74D, #4FC3F7)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+          }}>
+            우리 순서는 이렇게!
+          </h1>
+          <p className="text-3xl text-gray-500 mb-4 pop-in" style={{ animationDelay: '0.15s' }}>
+            🔄 빙글빙글 돌아가며 한 명씩 차례대로 해요
+          </p>
+
+          <div className="relative" style={{ width: 720, height: 720 }}>
+            {/* 회전하는 점선 원 */}
+            <svg width="720" height="720" className="absolute inset-0" style={{ animation: 'spin-slow 40s linear infinite' }}>
+              <circle cx={cx} cy={cy} r={R} fill="none" stroke="#FFD54F" strokeWidth="5" strokeDasharray="14 18" opacity="0.6" />
+            </svg>
+
+            {/* 화살표 곡선 (순환 방향 표시) */}
+            <svg width="720" height="720" className="absolute inset-0 pointer-events-none">
+              {steps.map((_, i) => {
+                const a1 = (i / n) * 2 * Math.PI - Math.PI / 2;
+                const a2 = ((i + 0.5) / n) * 2 * Math.PI - Math.PI / 2;
+                const x2 = cx + R * Math.cos(a2);
+                const y2 = cy + R * Math.sin(a2);
+                return (
+                  <text key={i} x={x2} y={y2 + 10} fontSize="36" textAnchor="middle"
+                    fill="#FFB74D" style={{ fontWeight: 900 }}>➤</text>
+                );
+              })}
+            </svg>
+
+            {/* 중앙 */}
+            <div className="absolute flex flex-col items-center justify-center rounded-full shadow-2xl"
+              style={{
+                left: cx - 110, top: cy - 110, width: 220, height: 220,
+                background: 'linear-gradient(135deg, #FFFDE7, #FFE0B2)',
+                border: '8px solid white'
+              }}>
+              <div className="text-7xl">🎵</div>
+              <div className="text-3xl font-black text-gray-700 mt-1">우리 반</div>
+              <div className="text-2xl font-bold text-gray-500">테마곡</div>
+            </div>
+
+            {/* 단계 노드 */}
+            {steps.map((step, i) => {
+              const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+              const x = cx + R * Math.cos(angle);
+              const y = cy + R * Math.sin(angle);
+              return (
+                <div
+                  key={i}
+                  className="absolute flex flex-col items-center justify-center rounded-3xl shadow-xl pop-in"
+                  style={{
+                    left: x - 95, top: y - 75, width: 190, height: 150,
+                    background: 'white',
+                    border: `6px solid ${step.color}`,
+                    animationDelay: `${0.3 + i * 0.15}s`
+                  }}
+                >
+                  <div className="absolute -top-6 -left-4 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg"
+                    style={{ width: 56, height: 56, background: step.color }}>
+                    {i + 1}
+                  </div>
+                  <div className="text-5xl mb-1">{step.emoji}</div>
+                  <div className="text-2xl font-black text-gray-800">{step.title}</div>
+                  <div className="text-base text-gray-500 text-center px-2 leading-tight mt-1">{step.desc}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={onStart}
+            className="text-white text-6xl font-bold px-20 py-7 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1 pop-in mt-4"
+            style={{
+              background: 'linear-gradient(135deg, #66BB6A 0%, #43A047 100%)',
+              animationDelay: '1.2s'
+            }}
+          >
+            ▶️ 시작하기
           </button>
         </div>
       );
