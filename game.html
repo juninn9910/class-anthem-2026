@@ -396,8 +396,11 @@
     function speak(text, opts = {}) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
-      // 이모지 제거 (TTS가 못 읽거나 "이모지" 글자로 읽음)
-      const clean = text.replace(/\p{Extended_Pictographic}/gu, '').replace(/\s+/g, ' ').trim();
+      const clean = text
+        .replace(/\p{Extended_Pictographic}/gu, '')  // 이모지 제거
+        .replace(/[~∼〜～…·•◦‣⁃\-–—_*#^|<>]/g, ' ')   // TTS가 읽어버리는 기호 제거
+        .replace(/\s+/g, ' ')
+        .trim();
       const u = new SpeechSynthesisUtterance(clean);
       u.lang = 'ko-KR';
       u.rate = opts.rate ?? 0.9;
@@ -734,27 +737,36 @@
       );
     }
 
-    // ───────────────────────── 순서도 화면 (동그란 순환도) ─────────────────────────
+    // ───────────────────────── 순서도 화면 (학생 차례 순환도) ─────────────────────────
     function FlowchartScreen({ onStart }) {
-      const steps = [
-        { emoji: '🎡', title: '돌림판 돌리기', desc: '내 차례에 돌림판을 빙글빙글', color: '#F48FB1' },
-        { emoji: '🎨', title: '색깔 누르기',   desc: '나온 색깔을 화면에서 콕!',   color: '#FFB74D' },
-        { emoji: '❓', title: '문제 풀기',     desc: '우리 반 문제를 골라서 척척',  color: '#FFD54F' },
-        { emoji: '🎤', title: '듣고 따라하기', desc: '핵심어를 듣고 큰 소리로',     color: '#4FC3F7' },
-        { emoji: '🎁', title: '핵심어 모으기', desc: '하나씩 모아 모아 열 개까지!', color: '#BA68C8' }
-      ];
+      // 한 바퀴 = 5명. 마지막 뒤에 다시 첫 주자로 순환.
+      const order = STUDENT_ORDER.slice(0, 5).map(name => STUDENTS.find(s => s.name === name));
 
       useEffect(() => {
         setTimeout(() => playPop(), 200);
         setTimeout(() => {
-          speak('우리 순서를 알려줄게요! 돌림판을 돌리고, 색깔을 누르고, 문제를 풀고, 듣고 따라 말해요. 그렇게 핵심어를 모으면 돼요! 준비됐나요?', { pitch: 1.15, rate: 0.95 });
+          const names = order.map(s => s.name).join(', ');
+          speak(`우리 차례를 알려줄게요! ${names} 순서로 돌아가요. 마지막 친구가 끝나면 다시 첫 번째 친구 차례로 돌아와요. 자, 첫 번째 김현민 친구부터 시작할까요?`, { pitch: 1.15, rate: 0.95 });
         }, 500);
       }, []);
 
-      // 원형 배치 계산
-      const R = 290;          // 반지름
-      const cx = 360, cy = 360;
-      const n = steps.length;
+      const cx = 360, cy = 360, R = 250;
+      const n = order.length;
+      const nodeAngle = (i) => (i / n) * 2 * Math.PI - Math.PI / 2; // 12시 방향부터 시계방향
+      const pt = (angle, r = R) => [cx + r * Math.cos(angle), cy + r * Math.sin(angle)];
+
+      // 두 노드 사이를 잇는 원호 path + 끝점 화살표 각도
+      const arc = (i) => {
+        const gap = 0.32; // 노드 주변 여백(라디안)
+        const a1 = nodeAngle(i) + gap;
+        const a2 = nodeAngle((i + 1) % n) - gap;
+        const rArc = R; // 화살표가 도는 반지름
+        const [x1, y1] = pt(a1, rArc);
+        const [x2, y2] = pt(a2, rArc);
+        // 화살표 머리 각도: 원 접선 방향(시계방향 진행) = 반경각 + 90°
+        const headDeg = (a2 * 180 / Math.PI) + 90;
+        return { d: `M ${x1} ${y1} A ${rArc} ${rArc} 0 0 1 ${x2} ${y2}`, hx: x2, hy: y2, headDeg };
+      };
 
       return (
         <div className="min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden">
@@ -765,28 +777,27 @@
             background: 'linear-gradient(135deg, #F48FB1, #FFB74D, #4FC3F7)',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
           }}>
-            우리 순서는 이렇게!
+            우리 차례는 이렇게!
           </h1>
-          <p className="text-3xl text-gray-500 mb-4 pop-in" style={{ animationDelay: '0.15s' }}>
-            🔄 빙글빙글 돌아가며 한 명씩 차례대로 해요
+          <p className="text-3xl text-gray-500 mb-2 pop-in" style={{ animationDelay: '0.15s' }}>
+            🔄 한 명씩 돌아가며, 마지막 친구 다음엔 다시 처음으로!
           </p>
 
           <div className="relative" style={{ width: 720, height: 720 }}>
-            {/* 회전하는 점선 원 */}
-            <svg width="720" height="720" className="absolute inset-0" style={{ animation: 'spin-slow 40s linear infinite' }}>
-              <circle cx={cx} cy={cy} r={R} fill="none" stroke="#FFD54F" strokeWidth="5" strokeDasharray="14 18" opacity="0.6" />
-            </svg>
-
-            {/* 화살표 곡선 (순환 방향 표시) */}
+            {/* 순환 화살표 (SVG path + 끝점 화살촉) */}
             <svg width="720" height="720" className="absolute inset-0 pointer-events-none">
-              {steps.map((_, i) => {
-                const a1 = (i / n) * 2 * Math.PI - Math.PI / 2;
-                const a2 = ((i + 0.5) / n) * 2 * Math.PI - Math.PI / 2;
-                const x2 = cx + R * Math.cos(a2);
-                const y2 = cy + R * Math.sin(a2);
+              {order.map((_, i) => {
+                const { d, hx, hy, headDeg } = arc(i);
+                const isFirst = i === n - 1; // 마지막→처음 으로 돌아가는 화살표
+                const stroke = isFirst ? '#F48FB1' : '#FFC107';
                 return (
-                  <text key={i} x={x2} y={y2 + 10} fontSize="36" textAnchor="middle"
-                    fill="#FFB74D" style={{ fontWeight: 900 }}>➤</text>
+                  <g key={i}>
+                    <path d={d} fill="none" stroke={stroke} strokeWidth="6"
+                      strokeDasharray="2 14" strokeLinecap="round" opacity="0.85" />
+                    <g transform={`translate(${hx} ${hy}) rotate(${headDeg})`}>
+                      <path d="M 0 0 L -16 -9 L -16 9 Z" fill={stroke} />
+                    </g>
+                  </g>
                 );
               })}
             </svg>
@@ -794,38 +805,44 @@
             {/* 중앙 */}
             <div className="absolute flex flex-col items-center justify-center rounded-full shadow-2xl"
               style={{
-                left: cx - 110, top: cy - 110, width: 220, height: 220,
+                left: cx - 105, top: cy - 105, width: 210, height: 210,
                 background: 'linear-gradient(135deg, #FFFDE7, #FFE0B2)',
                 border: '8px solid white'
               }}>
-              <div className="text-7xl">🎵</div>
+              <div className="text-6xl">🔄</div>
               <div className="text-3xl font-black text-gray-700 mt-1">우리 반</div>
-              <div className="text-2xl font-bold text-gray-500">테마곡</div>
+              <div className="text-xl font-bold text-gray-500">5명 순서대로</div>
             </div>
 
-            {/* 단계 노드 */}
-            {steps.map((step, i) => {
-              const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
-              const x = cx + R * Math.cos(angle);
-              const y = cy + R * Math.sin(angle);
+            {/* 학생 노드 */}
+            {order.map((s, i) => {
+              const [x, y] = pt(nodeAngle(i));
+              const isFirst = i === 0;
               return (
                 <div
-                  key={i}
+                  key={s.name}
                   className="absolute flex flex-col items-center justify-center rounded-3xl shadow-xl pop-in"
                   style={{
-                    left: x - 95, top: y - 75, width: 190, height: 150,
-                    background: 'white',
-                    border: `6px solid ${step.color}`,
-                    animationDelay: `${0.3 + i * 0.15}s`
+                    left: x - 90, top: y - 90, width: 180, height: 180,
+                    background: isFirst ? 'linear-gradient(135deg, #FFE082, #FFAB91)' : 'white',
+                    border: `6px solid ${isFirst ? '#FF7043' : '#FFD54F'}`,
+                    animationDelay: `${0.3 + i * 0.15}s`,
+                    transform: isFirst ? 'scale(1.08)' : 'none',
+                    zIndex: isFirst ? 5 : 1
                   }}
                 >
                   <div className="absolute -top-6 -left-4 rounded-full flex items-center justify-center text-3xl font-black text-white shadow-lg"
-                    style={{ width: 56, height: 56, background: step.color }}>
+                    style={{ width: 56, height: 56, background: isFirst ? '#FF7043' : '#FFB300' }}>
                     {i + 1}
                   </div>
-                  <div className="text-5xl mb-1">{step.emoji}</div>
-                  <div className="text-2xl font-black text-gray-800">{step.title}</div>
-                  <div className="text-base text-gray-500 text-center px-2 leading-tight mt-1">{step.desc}</div>
+                  <div className="text-7xl">{s.emoji}</div>
+                  <div className="text-3xl font-black text-gray-800 mt-1">{s.name}</div>
+                  {isFirst && (
+                    <div className="absolute -bottom-7 px-4 py-1 rounded-full text-white text-xl font-bold shadow-lg whitespace-nowrap"
+                      style={{ background: '#FF7043' }}>
+                      👈 여기서 시작!
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -833,7 +850,7 @@
 
           <button
             onClick={onStart}
-            className="text-white text-6xl font-bold px-20 py-7 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1 pop-in mt-4"
+            className="text-white text-6xl font-bold px-20 py-7 rounded-full shadow-2xl transition-all hover:scale-110 hover:rotate-1 pop-in mt-6"
             style={{
               background: 'linear-gradient(135deg, #66BB6A 0%, #43A047 100%)',
               animationDelay: '1.2s'
