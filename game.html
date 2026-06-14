@@ -259,11 +259,11 @@
         { id: "d3", is_open: false,
           question: "화장실은 언제 가야 할까요? 🚽",
           sentence_template: "화장실은 ___에 다녀옵니다.",
-          options: ["쉬는 시간", "수업 시간", "밥 먹을 때", "잠잘 때", "집에 갈 때"] },
+          options: ["쉬는 시간", "수업 시간", "체육 시간", "정보 시간", "과학 시간"] },
         { id: "d4", is_open: false,
           question: "물은 언제 마시러 가는 게 좋을까요? 💧",
           sentence_template: "물은 ___에 마십니다.",
-          options: ["쉬는 시간", "수업 시간", "화장실 갈 때", "선생님 말씀할 때", "집에 갈 때"] },
+          options: ["쉬는 시간", "수업 시간", "국어 시간", "사회 시간", "과학 시간"] },
         { id: "d5", is_open: false,
           question: "밥을 먹고 나서는 무엇을 해야 할까요? 🪥",
           sentence_template: "밥을 다 먹고 나서는 ___을 해요.",
@@ -883,16 +883,36 @@
     function PracticeScreen({ onBack, onStart }) {
       // step: 'intro'(색깔 고르기) → 'question'(문제) → 'done'(칭찬)
       const [step, setStep] = useState('intro');
+      const [pickedColor, setPickedColor] = useState(null);
       const [showHint, setShowHint] = useState(false);
       const [wrongShake, setWrongShake] = useState(false);
 
-      // 연습 전용 문제 (본 게임 풀과 무관, 3지선다)
-      const PRACTICE_Q = {
-        color: 'skyblue',
-        category: '학교',
-        question: '우리는 몇 학년일까요? 🏫',
-        answer: '3학년',
-        options: ['1학년', '2학년', '3학년']  // 화면 표시 순서 그대로
+      // 4색 연습 전용 문제 (모두 3지선다, 정답은 answer)
+      const PRACTICE_BANK = {
+        pink: {
+          category: '친구',
+          question: '우리 친구들 머리는 어떤가요? 💇',
+          answer: '짧은 머리',
+          options: ['긴 머리', '짧은 머리', '곱슬머리']
+        },
+        yellow: {
+          category: '선생님',
+          question: '우리 담임 선생님은 누구일까요? 👩‍🏫',
+          answer: '이수현 선생님',
+          options: ['박정인 선생님', '이수현 선생님', '정유희 선생님']
+        },
+        orange: {
+          category: '일상',
+          question: '밥을 먹고 나서는 무엇을 해야 할까요? 🪥',
+          answer: '양치',
+          options: ['세수', '양치', '목욕']
+        },
+        skyblue: {
+          category: '학교',
+          question: '우리는 몇 학년일까요? 🏫',
+          answer: '3학년',
+          options: ['1학년', '2학년', '3학년']
+        }
       };
 
       useEffect(() => {
@@ -902,16 +922,23 @@
         }, 500);
       }, []);
 
-      function handleColor() {
+      const curQ = pickedColor ? PRACTICE_BANK[pickedColor] : null;
+      const info = pickedColor ? COLOR_MAP[pickedColor] : null;
+
+      function handleColor(color) {
         playPop();
+        setPickedColor(color);
         setStep('question');
+        setShowHint(false);
+        setWrongShake(false);
+        const q = PRACTICE_BANK[color];
         setTimeout(() => {
-          speak(`학교 문제를 골랐네요! ${PRACTICE_Q.question}`);
+          speak(`${q.category} 문제를 골랐네요! ${q.question}`);
         }, 250);
       }
 
       function handleOption(opt) {
-        if (opt !== PRACTICE_Q.answer) {
+        if (opt !== curQ.answer) {
           playWrong();
           setShowHint(true);
           setWrongShake(true);
@@ -925,8 +952,6 @@
           speak('정답이에요! 정말 잘했어요! 이제 진짜로 시작해 볼까요?', { pitch: 1.25, rate: 0.95 });
         }, 300);
       }
-
-      const info = COLOR_MAP[PRACTICE_Q.color];
 
       return (
         <div className="min-h-screen flex flex-col p-8 relative overflow-hidden">
@@ -949,38 +974,31 @@
               <div className="flex flex-col items-center">
                 <div className="text-5xl mb-3 text-gray-700 font-black">🎡 연습해 볼까요?</div>
                 <div className="text-3xl mb-10 text-gray-500">
-                  돌림판을 돌리고 나온 색깔을 눌러요! (연습은 하늘색이에요)
+                  돌림판을 돌리고 나온 색깔을 눌러요!
                 </div>
                 <div className="grid grid-cols-2 gap-10">
-                  {Object.entries(COLOR_MAP).map(([key, ci]) => {
-                    const isPractice = key === 'skyblue';
-                    return (
-                      <button
-                        key={key}
-                        disabled={!isPractice}
-                        onClick={handleColor}
-                        data-no-pop
-                        className={`color-btn rounded-full flex flex-col items-center justify-center ${isPractice ? 'wheel-idle' : ''}`}
-                        style={{
-                          background: `radial-gradient(circle at 30% 30%, ${ci.hex} 0%, ${ci.deep} 100%)`,
-                          width: 240, height: 240,
-                          border: '8px solid white',
-                          boxShadow: isPractice ? '0 10px 25px rgba(0,0,0,0.15)' : 'none',
-                          opacity: isPractice ? 1 : 0.25,
-                          filter: isPractice ? 'none' : 'grayscale(0.6)',
-                          cursor: isPractice ? 'pointer' : 'not-allowed'
-                        }}
-                      >
-                        <div className="text-7xl mb-2 drop-shadow-md">{ci.emoji}</div>
-                        <div className="text-4xl font-black text-white drop-shadow-md">{ci.label}</div>
-                      </button>
-                    );
-                  })}
+                  {Object.entries(COLOR_MAP).map(([key, ci]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleColor(key)}
+                      data-no-pop
+                      className="color-btn rounded-full flex flex-col items-center justify-center wheel-idle"
+                      style={{
+                        background: `radial-gradient(circle at 30% 30%, ${ci.hex} 0%, ${ci.deep} 100%)`,
+                        width: 240, height: 240,
+                        border: '8px solid white',
+                        boxShadow: '0 10px 25px rgba(0,0,0,0.15)'
+                      }}
+                    >
+                      <div className="text-7xl mb-2 drop-shadow-md">{ci.emoji}</div>
+                      <div className="text-4xl font-black text-white drop-shadow-md">{ci.label}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
 
-            {step === 'question' && (
+            {step === 'question' && curQ && (
               <div className={`w-full max-w-7xl ${wrongShake ? 'shake' : 'pop-in'}`}>
                 <div className="bg-white rounded-[40px] shadow-2xl p-12" style={{ border: `8px solid ${info.hex}` }}>
                   <div className="flex items-center justify-center gap-3 mb-4">
@@ -990,12 +1008,15 @@
                     <span className="text-3xl font-bold text-gray-500">· 연습 문제</span>
                   </div>
                   <div className="text-7xl font-black text-center mb-10 mt-6 leading-tight">
-                    {PRACTICE_Q.question}
+                    {curQ.question}
                   </div>
                   <div className="grid grid-cols-3 gap-5">
-                    {PRACTICE_Q.options.map((opt, idx) => {
-                      const isAnswer = opt === PRACTICE_Q.answer;
+                    {curQ.options.map((opt, idx) => {
+                      const isAnswer = opt === curQ.answer;
                       const isHighlight = showHint && isAnswer;
+                      const display = opt.endsWith(' 선생님')
+                        ? <>{opt.replace(' 선생님', '')}<br/>선생님</>
+                        : opt;
                       return (
                         <button
                           key={idx}
@@ -1007,7 +1028,7 @@
                             color: '#5D4037'
                           }}
                         >
-                          {opt}
+                          {display}
                         </button>
                       );
                     })}
@@ -1035,7 +1056,7 @@
                 </div>
                 <div className="flex gap-6">
                   <button
-                    onClick={onBack}
+                    onClick={() => { setStep('intro'); setPickedColor(null); setShowHint(false); }}
                     className="bg-white text-gray-700 text-3xl font-bold px-10 py-6 rounded-full shadow-xl hover:scale-105 transition"
                   >
                     🔄 한 번 더 연습
