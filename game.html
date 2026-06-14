@@ -512,7 +512,7 @@
           .filter(n => n === currentStudent.name).length;
         const ord = ORDINAL[turnIndex] || (turnIndex + 1);
         const t = setTimeout(() => {
-          speak(`자~ ${ord} 번째, ${currentStudent.name} 친구 차례예요!`, { pitch: 1.25, rate: 0.95 });
+          speak(`${ord} 번째, ${currentStudent.name} 친구 차례예요!`, { pitch: 1.25, rate: 0.95 });
         }, 350);
         return () => clearTimeout(t);
       }, [turnIndex, phase, currentQ, listening, currentStudent]);
@@ -550,26 +550,25 @@
         // 1지선다 제외하고 셔플
         const displayOptions = count > 1 ? shuffle(sliced) : sliced;
 
-        setCurrentQ({
+        const nextQ = {
           ...picked,
           color,
           category: cat,
           displayOptions,
           answer: picked.is_open ? null : picked.options[0]
-        });
+        };
+
         setShowHint(false);
         setWrongShake(false);
 
-        // 색깔 선택 즉시 피드백 + 문제 본문 읽기 (이모지는 speak()에서 자동 제거)
-        const catPhrase = {
-          '친구':   '친구 문제를 골랐네요! 친구 문제 보여줄게요.',
-          '선생님': '선생님 문제를 골랐네요! 선생님 문제 보여줄게요.',
-          '일상':   '일상 문제를 골랐네요! 일상 문제 보여줄게요.',
-          '학교':   '학교 문제를 골랐네요! 학교 문제 보여줄게요.'
-        }[cat] || '문제를 보여줄게요.';
+        // 1) 클릭 즉시 카테고리 단어만 짧게 읽기
+        speak(cat, { rate: 1.0 });
+
+        // 2) 짧은 휴지 후 문제 카드 표시 + 문제 낭독 (화면·음성 동기화)
         setTimeout(() => {
-          speak(`${catPhrase} ${picked.question}`);
-        }, 200);
+          setCurrentQ(nextQ);
+          setTimeout(() => speak(picked.question), 150);
+        }, 750);
       }
 
       // 선택지 클릭
@@ -927,14 +926,19 @@
 
       function handleColor(color) {
         playPop();
-        setPickedColor(color);
-        setStep('question');
         setShowHint(false);
         setWrongShake(false);
         const q = PRACTICE_BANK[color];
+
+        // 1) 카테고리 단어 먼저 짧게
+        speak(q.category, { rate: 1.0 });
+
+        // 2) 휴지 후 문제 표시 + 낭독
         setTimeout(() => {
-          speak(`${q.category} 문제를 골랐네요! ${q.question}`);
-        }, 250);
+          setPickedColor(color);
+          setStep('question');
+          setTimeout(() => speak(q.question), 150);
+        }, 750);
       }
 
       function handleOption(opt) {
